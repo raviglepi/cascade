@@ -1,0 +1,37 @@
+import {recommended} from "@effect/tsgo/oxlint-presets";
+import {defineConfig} from "oxlint";
+
+export default defineConfig({
+  extends: [recommended],
+  plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
+  categories: {correctness: "warn", suspicious: "warn", perf: "warn"},
+  rules: {
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "oxc/no-map-spread": "off",
+    "react-in-jsx-scope": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "eslint/no-shadow": "off",
+    "eslint/no-await-in-loop": "off",
+    "eslint/no-underscore-dangle": "off",
+    "typescript/consistent-return": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/no-floating-promises": "off",
+    "typescript/no-implied-eval": "off",
+    "typescript/no-meaningless-void-operator": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-unnecessary-boolean-literal-compare": "off",
+    "typescript/no-unnecessary-type-conversion": "off",
+    "typescript/no-unnecessary-type-arguments": "off",
+    "typescript/no-unnecessary-type-assertion": "off",
+    "typescript/no-unnecessary-type-parameters": "off",
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/await-thenable": "off",
+    "typescript/require-array-sort-compare": "off",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/unbound-method": "off",
+    "no-unused-vars": "warn",
+  },
+  options: {typeAware: true, typeCheck: true},
+});

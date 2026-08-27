@@ -1,0 +1,29 @@
+{
+  "name": "cascade",
+  "private": true,
+  "type": "module",
+  "module": "index.ts",
+  "scripts": {
+    "dev": "bun run index.ts",
+    "test": "vitest run",
+    "lint": "oxlint",
+    "fix": "oxlint --fix",
+    "prepare": "effect-tsgo patch --oxlint"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "^0.91.2",
+    "effect": "^4.0.0-beta"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "^0.37.0",
+    "@effect/vitest": "^4.0.0-beta",
+    "@types/bun": "latest",
+    "oxfmt": "^0.65.0",
+    "oxlint": "^1.80.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}
