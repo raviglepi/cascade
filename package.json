@@ -1,22 +1,26 @@
 {
-  "name": "cascade",
+  "name": "cascade-workspace",
   "private": true,
+  "workspaces": [
+    "tools/**",
+    "packages/**"
+  ],
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "dev": "bun run index.ts",
     "test": "vitest run",
     "lint": "oxlint",
     "fix": "oxlint --fix",
-    "prepare": "effect-tsgo patch --oxlint"
+    "prepare": "effect-tsgo patch --oxlint",
+    "fmt": "oxfmt"
   },
   "dependencies": {
     "@effect/platform-bun": "^0.91.2",
-    "effect": "^4.0.0-beta"
+    "effect": "^4.0.0-rc"
   },
   "devDependencies": {
     "@effect/tsgo": "^0.37.0",
-    "@effect/vitest": "^4.0.0-beta",
+    "@effect/vitest": "^4.0.0-rc",
     "@types/bun": "latest",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",

@@ -2,8 +2,10 @@ import {recommended} from "@effect/tsgo/oxlint-presets";
 import {defineConfig} from "oxlint";
 
 export default defineConfig({
+  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/tools/**"],
   extends: [recommended],
   plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
+  jsPlugins: [{name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts"}],
   categories: {correctness: "warn", suspicious: "warn", perf: "warn"},
   rules: {
     "unicorn/no-array-sort": "off",
@@ -32,6 +34,22 @@ export default defineConfig({
     "typescript/restrict-template-expressions": "off",
     "typescript/unbound-method": "off",
     "no-unused-vars": "warn",
+    complexity: "error",
+    "anti-slop/no-chained-type-assertions": "error",
+    "anti-slop/no-conditional-empty-object-spread": "error",
+    "anti-slop/no-known-value-widening": "error",
+    "anti-slop/no-module-mocking": "error",
+    "anti-slop/no-object-parameters": "error",
+    "anti-slop/no-reflect-apply": "error",
+    "anti-slop/no-reflect-get": "error",
+    "anti-slop/no-runtime-typeof": "error",
+    "anti-slop/no-shape-in-symbol-names": "error",
+    "anti-slop/no-unknown-parameters": "error",
+    "anti-slop/no-unknown-returns": "error",
+    "anti-slop/no-unknown-type-aliases": "error",
+    "anti-slop/no-unsafe-dictionary-type": "error",
+    "anti-slop/no-widen-then-assert": "error",
+    "anti-slop/require-safety-comment-for-type-assertion": "error",
   },
   options: {typeAware: true, typeCheck: true},
 });

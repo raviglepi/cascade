@@ -1,0 +1,25 @@
+{
+  "name": "oxlint-plugin-anti-slop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Opinionated Oxlint rules that reject low-evidence TypeScript and JavaScript patterns.",
+  "license": "MIT",
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "check": "bun typecheck",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.80.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "oxlint": "1.78.0",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2"
+  }
+}
