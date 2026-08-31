@@ -1,33 +1,36 @@
 {
-  "name": "cascade-workspace",
+  "name": "cascade",
   "private": true,
   "workspaces": [
-    "tools/**",
+    "tools/oxlint",
     "packages/**"
   ],
   "type": "module",
   "module": "index.ts",
   "scripts": {
+    "dev": "bun run index.ts",
+    "build": "bun vite build",
     "test": "vitest run",
-    "lint": "oxlint",
-    "fix": "oxlint --fix",
-    "prepare": "effect-tsgo patch --oxlint",
-    "fmt": "oxfmt"
+    "lint": "oxlint --ignore-pattern \"tools/**\"",
+    "fix": "oxlint --ignore-pattern \"tools/**\" --fix",
+    "fmt": "oxfmt",
+    "prepare": "effect-tsgo patch --oxlint --no-typescript"
   },
   "dependencies": {
     "@effect/platform-bun": "^0.91.2",
     "effect": "^4.0.0-rc"
   },
   "devDependencies": {
-    "@effect/tsgo": "^0.37.0",
+    "@effect/tsgo": "^0.38.0",
     "@effect/vitest": "^4.0.0-rc",
     "@types/bun": "latest",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "typescript": "^7",
+    "typesugar": "^0.1.1",
+    "unplugin-typesugar": "^0.1.1",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11"
-  },
-  "peerDependencies": {
-    "typescript": "^7"
   }
 }

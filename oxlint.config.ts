@@ -2,10 +2,13 @@ import {recommended} from "@effect/tsgo/oxlint-presets";
 import {defineConfig} from "oxlint";
 
 export default defineConfig({
-  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/tools/**"],
   extends: [recommended],
+  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/tools/**"],
   plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
-  jsPlugins: [{name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts"}],
+  jsPlugins: [
+    {name: "anti-slop", specifier: "./tools/oxlint/anti-slop/src/index.ts"},
+    {name: "automation", specifier: "./tools/oxlint/ai-automation/rules/oxlint/src/index.ts"},
+  ],
   categories: {correctness: "warn", suspicious: "warn", perf: "warn"},
   rules: {
     "unicorn/no-array-sort": "off",
@@ -13,6 +16,7 @@ export default defineConfig({
     "oxc/no-map-spread": "off",
     "react-in-jsx-scope": "off",
     "react-hooks/exhaustive-deps": "off",
+    "vitest/consistent-test-it": "error",
     "eslint/no-shadow": "off",
     "eslint/no-await-in-loop": "off",
     "eslint/no-underscore-dangle": "off",
@@ -50,6 +54,21 @@ export default defineConfig({
     "anti-slop/no-unsafe-dictionary-type": "error",
     "anti-slop/no-widen-then-assert": "error",
     "anti-slop/require-safety-comment-for-type-assertion": "error",
+    "automation/no-banned-type-assertions": "error",
+    "automation/no-ambient-nondeterminism": "error",
+    "automation/no-api-backend-imports": "error",
+    "automation/no-api-repository-imports": "error",
+    "automation/no-direct-browser-storage": "error",
+    "automation/no-direct-fetch": "error",
+    "automation/no-disable-validation": "error",
+    "automation/no-global-json": "error",
+    "automation/no-in-operator": "error",
+    "automation/no-nested-effect-array-methods": "error",
+    "automation/no-nested-layer-provide": "error",
+    "automation/no-switch": "error",
+    "automation/no-try-catch": "error",
+    "automation/prefer-effect-match": "error",
+    "automation/prefer-option-from-nullable": "error",
   },
   options: {typeAware: true, typeCheck: true},
 });

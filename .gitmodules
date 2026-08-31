@@ -1,0 +1,6 @@
+[submodule "tools/oxlint/anti-slop"]
+	path = tools/oxlint/anti-slop
+	url = https://github.com/dmmulroy/anti-slop.git
+[submodule "tools/oxlint/ai-automation"]
+	path = tools/oxlint/ai-automation
+	url = https://github.com/typeonce-dev/ai-automation.git
