@@ -1,0 +1,13 @@
+{
+  "name": "cascade-packages",
+  "private": "true",
+  "type": "module",
+  "module": "index.ts",
+  "devDependencies": {
+    "typescript": "^6",
+    "typesugar": "^0.1.1",
+    "unplugin-typesugar": "^0.1.1",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
