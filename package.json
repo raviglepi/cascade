@@ -1,33 +1,31 @@
 {
   "name": "cascade-workspace",
-  "private": "true",
   "workspaces": [
-    "tools/oxlint",
+    "tools/*",
     "packages/**"
   ],
   "type": "module",
-  "module": "index.ts",
   "scripts": {
-    "build": "bun build:core && bun build:react",
-    "build:core": "cd packages/core && vite build",
-    "build:react": "cd packages/react && vite build",
+    "prepare": "effect-tsgo patch --oxlint --no-typescript",
+    "lint": "cd packages && oxlint",
+    "fix": "cd packages && bun lint -- --fix",
+    "fmt": "oxfmt . '!tools/**/*.*/**/*'",
     "test": "cd packages && vitest run",
-    "lint": "oxlint --ignore-pattern \"tools/**\"",
-    "fix": "oxlint --ignore-pattern \"tools/**\" --fix",
-    "fmt": "oxfmt",
-    "prepare": "effect-tsgo patch --oxlint --no-typescript"
+    "build": "pnpm --filter './packages/*' exec bun vite build",
+    "docs": "pnpm --filter './packages/*' exec bun docgen"
   },
   "dependencies": {
-    "@effect/platform-bun": "^4.0.0-rc",
     "effect": "^4.0.0-rc"
   },
   "devDependencies": {
+    "@effect/docgen": "^4.0.0-rc",
     "@effect/tsgo": "^0.38.0",
     "@effect/vitest": "^4.0.0-rc",
     "@types/bun": "latest",
     "oxfmt": "^0.65.0",
     "oxlint": "^1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "type-fest": "^5.9.0",
     "typescript": "^7",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"

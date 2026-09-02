@@ -1,9 +1,8 @@
 {
   "name": "cascade-packages",
-  "private": "true",
   "type": "module",
-  "module": "index.ts",
   "devDependencies": {
+    "comptime": "^0.1.0",
     "typescript": "^6",
     "typesugar": "^0.1.1",
     "unplugin-typesugar": "^0.1.1",

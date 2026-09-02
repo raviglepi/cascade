@@ -1,6 +1,6 @@
-[submodule "tools/oxlint/anti-slop"]
-	path = tools/oxlint/anti-slop
+[submodule "tools/oxlint/dmmulroy.anti-slop"]
+	path = tools/oxlint/dmmulroy.anti-slop
 	url = https://github.com/dmmulroy/anti-slop.git
-[submodule "tools/oxlint/ai-automation"]
-	path = tools/oxlint/ai-automation
+[submodule "tools/oxlint/typeonce-dev.ai-automation"]
+	path = tools/oxlint/typeonce-dev.ai-automation
 	url = https://github.com/typeonce-dev/ai-automation.git

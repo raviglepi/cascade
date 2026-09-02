@@ -1,5 +1,5 @@
-import * as Effect from "effect/Effect";
-import {CascadeRuntimeImpl} from "./graph.ts";
+/** @since 0.1.0 */
+
 import type {CascadeRuntime} from "./graph.ts";
 import type {
   NextRegisteredRule,
@@ -8,9 +8,13 @@ import type {
   RuntimeRule,
   RuntimeRuleHandler,
 } from "./rules.ts";
-import {RuleBundle} from "./rules.ts";
 import type {DefinitionName, DefinitionOf, LiveToken, TokenInstanceRef} from "./token.ts";
 
+import * as Effect from "effect/Effect";
+import {CascadeRuntimeImpl} from "./graph.ts";
+import {RuleBundle} from "./rules.ts";
+
+/** @since 0.1.0 */
 export class Cascade<Registered extends RegisteredRule = never> {
   readonly #rules: readonly RuntimeRule[];
 

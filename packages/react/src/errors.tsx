@@ -1,6 +1,7 @@
-import {Component} from "react";
 import type {ErrorInfo, ReactNode} from "react";
 import type {RuleFailure} from "cascade";
+
+import {Component} from "react";
 
 export type CascadeReactReport =
   | {readonly cause: unknown; readonly kind: "listener"; readonly tokenId: number}

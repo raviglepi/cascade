@@ -1,7 +1,8 @@
-import {Rule, Rules, Token} from "cascade";
 import type {TokenInstanceRef} from "cascade";
-import {ButtonElement, Column, Gap, Image, OnClick, Padding, Row, Text} from "../src/index.ts";
 import type {ImageSource} from "../src/index.ts";
+
+import {Rule, Rules, Token} from "cascade";
+import {ButtonElement, Column, Gap, Image, OnClick, Padding, Row, Text} from "../src/index.ts";
 
 export interface ContactRowInput {
   readonly compact?: boolean;

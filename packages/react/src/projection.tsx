@@ -1,7 +1,9 @@
-import {cloneElement, createElement} from "react";
 import type {CSSProperties, KeyboardEventHandler, MouseEventHandler, ReactElement} from "react";
 import type {LiveToken, TokenDefinitionRef, TokenValue} from "cascade";
 import type {ErrorReporter} from "./errors.tsx";
+import type {ImageSource, SpacingValue, VisibilityValue} from "./primitives.ts";
+
+import {cloneElement, createElement} from "react";
 import {ProjectionError} from "./errors.tsx";
 import {
   ButtonElement,
@@ -17,7 +19,6 @@ import {
   Text,
   Visibility,
 } from "./primitives.ts";
-import type {ImageSource, SpacingValue, VisibilityValue} from "./primitives.ts";
 
 interface Listener<Value> {
   readonly tokenId: number;

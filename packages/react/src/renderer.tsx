@@ -1,8 +1,9 @@
-import {createElement, useEffect, useMemo, useSyncExternalStore} from "react";
 import type {ReactElement, ReactNode} from "react";
 import type {CascadeRuntime, MountedRoots, TokenRoot} from "cascade";
-import {CascadeErrorBoundary} from "./errors.tsx";
 import type {ErrorReporter} from "./errors.tsx";
+
+import {createElement, useEffect, useMemo, useSyncExternalStore} from "react";
+import {CascadeErrorBoundary} from "./errors.tsx";
 import {project} from "./projection.tsx";
 
 export interface ReactRendererOptions {

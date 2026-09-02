@@ -1,6 +1,7 @@
+import {describe, expect, it} from "vitest";
+
 import * as Effect from "effect/Effect";
 import {renderToStaticMarkup} from "react-dom/server";
-import {describe, expect, it} from "vitest";
 import {Cascade} from "cascade";
 import {createContactRow, ContactRules} from "../demo/contact-row.tsx";
 import {createReactRenderer} from "../src/index.ts";

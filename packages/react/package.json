@@ -1,6 +1,7 @@
 {
   "name": "@cascade/react",
   "version": "0.1.0",
+  "homepage": "github.com/raviglepi/cascade",
   "type": "module",
   "sideEffects": false,
   "exports": {

@@ -1,3 +1,5 @@
+/** @since 0.1.0 */
+
 import type {CascadeEffect, WriteAddress, WritesOf, WriteSlot} from "./operation.ts";
 import type {
   DefinitionName,
@@ -10,18 +12,22 @@ import type {
   TokenInstanceRef,
 } from "./token.ts";
 
+/** @since 0.1.0 */
 export interface RuleFailure {
   readonly cause: unknown;
   readonly rule: string;
   readonly token: LiveToken;
 }
 
+/** @since 0.1.0 */
 export type RuleFailureListener = (failure: RuleFailure) => void;
 
+/** @since 0.1.0 */
 export type RuntimeRuleHandler = (
   token: LiveToken<TokenDefinitionRef, string, readonly []>,
 ) => Generator<CascadeEffect<void, WriteAddress>, void, never>;
 
+/** @since 0.1.0 */
 export interface RuntimeRule {
   readonly condition: TokenInstanceRef;
   readonly handler: RuntimeRuleHandler;
@@ -38,6 +44,7 @@ interface ConditionSummary<
   readonly root: Root;
 }
 
+/** @internal */
 interface RegisteredRule<
   Condition extends ConditionSummary = ConditionSummary,
   Writes extends WriteAddress = WriteAddress,
@@ -54,6 +61,7 @@ type ExcludedNames<Definitions extends TokenDefinitionRef> = Definitions extends
   ? Names<ExcludedBy<Definitions>>
   : never;
 
+/** @since 0.1.0 */
 export type ConditionOf<Condition extends TokenInstanceRef> = ConditionSummary<
   DefinitionName<DefinitionOf<Condition>>,
   Names<PositiveOf<Condition>>,
@@ -129,6 +137,7 @@ type ConflictWithEarlier<
         : never
     : never;
 
+/** @since 0.1.0 */
 type RuleValidation<Earlier extends RegisteredRule, Condition extends ConditionSummary, Yielded> = [
   Yielded,
 ] extends [never]
@@ -142,12 +151,14 @@ type RuleValidation<Earlier extends RegisteredRule, Condition extends ConditionS
         }
     : {readonly "Cascade rule error": "handlers may only yield Cascade operations"};
 
+/** @since 0.1.0 */
 export type NextRegisteredRule<
   Earlier extends RegisteredRule,
   Condition extends TokenInstanceRef,
   Yielded,
 > = Earlier | RegisteredRule<ConditionOf<Condition>, WritesOf<Yielded>>;
 
+/** @since 0.1.0 */
 export interface RuleDefinition {
   readonly condition: TokenInstanceRef;
   readonly handler: RuntimeRuleHandler;
@@ -155,6 +166,7 @@ export interface RuleDefinition {
 
 const ruleDefinitions = new WeakSet<object>();
 
+/** @since 0.1.0 */
 export function Rule<
   Condition extends TokenInstanceRef,
   Yielded extends CascadeEffect<void, WriteAddress>,
@@ -179,6 +191,7 @@ export function Rule<
   return definition;
 }
 
+/** @since 0.1.0 */
 export class RuleBundle {
   readonly entries: readonly RuntimeRule[];
 
@@ -217,10 +230,16 @@ function flattenRules(options: {
   }
 }
 
+/** @since 0.1.0 */
 export function Rules<const Tree extends object>(tree: Tree): RuleBundle {
   const entries: RuntimeRule[] = [];
   flattenRules({output: entries, prefix: "", tree});
   return new RuleBundle(entries);
 }
 
-export type {RegisteredRule, RuleValidation};
+export type {
+  /** @since 0.1.0 */
+  RegisteredRule,
+  /** @since 0.1.0 */
+  RuleValidation,
+};

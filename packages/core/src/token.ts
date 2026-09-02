@@ -1,3 +1,5 @@
+/** @since 0.1.0 */
+
 import type {CascadeEffect, WriteAddress} from "./operation.ts";
 
 const definitions = new WeakSet<object>();
@@ -7,13 +9,19 @@ const exclusions = new WeakSet<object>();
 
 let nextTokenId = 1;
 
+/** @since 0.1.0 */
 export const TokenDefinitionId: unique symbol = Symbol("cascade.token.definition");
+/** @since 0.1.0 */
 export const TokenInstanceId: unique symbol = Symbol("cascade.token.instance");
+/** @since 0.1.0 */
 export const TokenAliasId: unique symbol = Symbol("cascade.token.alias");
+/** @since 0.1.0 */
 export const NotTermId: unique symbol = Symbol("cascade.token.not");
 
+/** @since 0.1.0 */
 export type TokenValue = bigint | boolean | null | number | object | string | symbol | undefined;
 
+/** @since 0.1.0 */
 export interface TokenDefinitionRef {
   readonly excludedDefinitions: readonly TokenDefinitionRef[];
   readonly name: string;
@@ -24,10 +32,12 @@ export interface TokenDefinitionRef {
   };
 }
 
+/** @since 0.1.0 */
 export type TokenValueState =
   | {readonly kind: "absent"}
   | {readonly kind: "present"; readonly value: TokenValue};
 
+/** @since 0.1.0 */
 export interface TokenInstanceRef {
   readonly definition: TokenDefinitionRef;
   readonly id: number;
@@ -45,38 +55,49 @@ export interface TokenInstanceRef {
   };
 }
 
+/** @since 0.1.0 */
 export interface NotTerm<Definition extends TokenDefinitionRef = TokenDefinitionRef> {
   readonly definition: Definition;
   readonly [NotTermId]: Definition;
 }
 
+/** @since 0.1.0 */
 export interface TokenAlias<Instance extends TokenInstanceRef = TokenInstanceRef> {
   readonly instance: Instance;
   readonly [TokenAliasId]: Instance;
 }
 
+/** @since 0.1.0 */
 export type TokenTerm = TokenInstanceRef | TokenAlias | NotTerm;
+/** @since 0.1.0 */
 export type TokenRoot = TokenInstanceRef | TokenAlias;
 
+/** @since 0.1.0 */
 export type DefinitionOf<Instance extends TokenInstanceRef> =
   Instance[typeof TokenInstanceId]["definition"];
 
+/** @since 0.1.0 */
 export type DefinitionName<Definition extends TokenDefinitionRef> = Definition["name"];
 
+/** @since 0.1.0 */
 export type ValueOf<Definition extends TokenDefinitionRef> = ReturnType<
   Definition[typeof TokenDefinitionId]["value"]
 >;
 
+/** @since 0.1.0 */
 export type PositiveOf<Instance extends TokenInstanceRef> =
   Instance[typeof TokenInstanceId]["positive"];
 
+/** @since 0.1.0 */
 export type NegativeOf<Instance extends TokenInstanceRef> =
   Instance[typeof TokenInstanceId]["negative"];
 
+/** @since 0.1.0 */
 export type ExcludedBy<Definition extends TokenDefinitionRef> = ReturnType<
   Definition[typeof TokenDefinitionId]["excludes"]
 >;
 
+/** @since 0.1.0 */
 export type ExpandAlias<Term> = Term extends TokenAlias<infer Instance> ? Instance : Term;
 
 type PositiveDefinitions<Terms extends readonly TokenTerm[]> =
@@ -139,6 +160,7 @@ type ValidateComposition<
   ? Terms
   : Terms & {readonly "Cascade composition conflict": CompositionProblem<Existing, Terms>};
 
+/** @since 0.1.0 */
 export interface TokenInstance<
   Definition extends TokenDefinitionRef = TokenDefinitionRef,
   Positive extends TokenDefinitionRef = never,
@@ -157,6 +179,7 @@ export interface TokenInstance<
   value(): ValueOf<Definition> | undefined;
 }
 
+/** @since 0.1.0 */
 export interface TokenDefinition<
   Name extends string = string,
   Value extends TokenValue = never,
@@ -200,6 +223,7 @@ interface TokenDeclaration<Name extends string, Value extends TokenValue> {
   of<NextValue extends TokenValue>(): TokenDeclaration<Name, NextValue>;
 }
 
+/** @since 0.1.0 */
 export interface LiveToken<
   Definition extends TokenDefinitionRef = TokenDefinitionRef,
   Root extends string = string,
@@ -245,6 +269,7 @@ export interface LiveToken<
   value(): ValueOf<Definition> | undefined;
 }
 
+/** @since 0.1.0 */
 export interface TokenFactory {
   <Value extends TokenValue = never, const Name extends string = string>(
     name: Name,
@@ -355,12 +380,14 @@ function isInstance(value: TokenTerm): value is TokenInstanceRef {
   return instances.has(Object(value));
 }
 
+/** @since 0.1.0 */
 export function isTokenDefinition(
   value: TokenDefinitionRef | TokenInstanceRef,
 ): value is TokenDefinitionRef {
   return definitions.has(Object(value));
 }
 
+/** @since 0.1.0 */
 export function isTokenInstance(value: TokenTerm): value is TokenInstanceRef {
   return isInstance(value);
 }
@@ -387,6 +414,7 @@ function cloneInstance(instance: TokenInstanceRef): TokenInstanceRef {
   });
 }
 
+/** @since 0.1.0 */
 export function expandRoot(root: TokenRoot): TokenInstanceRef {
   return isAlias(root) ? cloneInstance(root.instance) : root;
 }
@@ -522,30 +550,36 @@ function setValuePipe<Value extends TokenValue>(
 
 createToken.setValue = setValuePipe;
 
+/** @since 0.1.0 */
 export const Token: TokenFactory = createToken;
 
+/** @since 0.1.0 */
 export function Not<const Instance extends TokenInstanceRef>(
   instance: Instance,
 ): NotTerm<DefinitionOf<Instance>> {
   return new RuntimeNotTerm(instance.definition);
 }
 
+/** @since 0.1.0 */
 export function Alias<const Instance extends TokenInstanceRef>(
   instance: Instance,
 ): TokenAlias<Instance> {
   return new RuntimeAlias(instance);
 }
 
+/** @since 0.1.0 */
 export function getDetachedNegativeDefinitions(
   instance: TokenInstanceRef,
 ): readonly TokenDefinitionRef[] {
   return instance.negativeDefinitions;
 }
 
+/** @since 0.1.0 */
 export function getDetachedRelations(instance: TokenInstanceRef): readonly TokenInstanceRef[] {
   return instance.relations;
 }
 
+/** @since 0.1.0 */
 export function getDetachedValue(instance: TokenInstanceRef): TokenValueState {
   return instance.valueState;
 }

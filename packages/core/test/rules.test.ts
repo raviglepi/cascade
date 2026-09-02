@@ -1,5 +1,6 @@
-import * as Effect from "effect/Effect";
 import {describe, expect, it} from "vitest";
+
+import * as Effect from "effect/Effect";
 import {Cascade, Not, Token} from "../src/index.ts";
 
 describe("rule engine", () => {

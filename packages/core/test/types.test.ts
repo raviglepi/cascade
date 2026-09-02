@@ -1,4 +1,5 @@
 import {expect, it} from "vitest";
+
 import {Cascade, Not, Token} from "../src/index.ts";
 
 const Fill = Token("Fill")();

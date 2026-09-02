@@ -3,11 +3,13 @@ import {defineConfig} from "oxlint";
 
 export default defineConfig({
   extends: [recommended],
-  ignorePatterns: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/tools/**"],
   plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
   jsPlugins: [
-    {name: "anti-slop", specifier: "./tools/oxlint/anti-slop/src/index.ts"},
-    {name: "automation", specifier: "./tools/oxlint/ai-automation/rules/oxlint/src/index.ts"},
+    {name: "anti-slop", specifier: "./tools/oxlint/dmmulroy.anti-slop/src/index.ts"},
+    {
+      name: "automation",
+      specifier: "./tools/oxlint/typeonce-dev.ai-automation/rules/oxlint/src/index.ts",
+    },
   ],
   categories: {correctness: "warn", suspicious: "warn", perf: "warn"},
   rules: {

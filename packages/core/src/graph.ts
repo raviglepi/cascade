@@ -1,13 +1,7 @@
-import * as Effect from "effect/Effect";
-import {OperationWritesId} from "./operation.ts";
+/** @since 0.1.0 */
+
 import type {CascadeEffect, WriteAddress} from "./operation.ts";
-import {
-  expandRoot,
-  getDetachedNegativeDefinitions,
-  getDetachedRelations,
-  getDetachedValue,
-  isTokenDefinition,
-} from "./token.ts";
+import type {RuntimeRule, RuleFailure, RuleFailureListener} from "./rules.ts";
 import type {
   DefinitionName,
   DefinitionOf,
@@ -19,7 +13,16 @@ import type {
   TokenValue,
   ValueOf,
 } from "./token.ts";
-import type {RuntimeRule, RuleFailure, RuleFailureListener} from "./rules.ts";
+
+import * as Effect from "effect/Effect";
+import {OperationWritesId} from "./operation.ts";
+import {
+  expandRoot,
+  getDetachedNegativeDefinitions,
+  getDetachedRelations,
+  getDetachedValue,
+  isTokenDefinition,
+} from "./token.ts";
 
 type RelationWrite<
   Terms extends readonly TokenRoot[],
@@ -42,6 +45,7 @@ interface LiveNode {
   valueState: {readonly kind: "absent"} | {readonly kind: "present"; readonly value: unknown};
 }
 
+/** @since 0.1.0 */
 export interface MountedRoots {
   readonly roots: readonly LiveToken[];
   release(): void;
@@ -49,6 +53,7 @@ export interface MountedRoots {
   subscribe(listener: () => void): () => void;
 }
 
+/** @since 0.1.0 */
 export interface CascadeRuntime {
   mount(...roots: readonly TokenRoot[]): MountedRoots;
   onRuleFailure(listener: RuleFailureListener): () => void;
@@ -226,6 +231,7 @@ class LiveTokenImpl<
   }
 }
 
+/** @since 0.1.0 */
 export class CascadeRuntimeImpl implements CascadeRuntime {
   readonly #activeMatches = new Map<RuntimeRule, Set<number>>();
   readonly #changedDefinitions = new Set<TokenDefinitionRef>();

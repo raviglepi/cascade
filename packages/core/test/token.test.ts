@@ -1,4 +1,5 @@
 import {describe, expect, it} from "vitest";
+
 import {Alias, Not, Token} from "../src/index.ts";
 
 describe("token descriptions", () => {

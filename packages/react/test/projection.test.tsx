@@ -1,6 +1,7 @@
+import {describe, expect, it} from "vitest";
+
 import * as Effect from "effect/Effect";
 import {renderToStaticMarkup} from "react-dom/server";
-import {describe, expect, it} from "vitest";
 import {Cascade, Token} from "cascade";
 import {Color, Column, Row, Text, createReactRenderer} from "../src/index.ts";
 
