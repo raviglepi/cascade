@@ -1,7 +1,8 @@
 # dependencies (bun install)
 node_modules
-*.lock
-*-lock.yaml
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
 
 # output
 out

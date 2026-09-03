@@ -1,5 +1,6 @@
 {
   "name": "cascade-packages",
+  "private": true,
   "type": "module",
   "devDependencies": {
     "comptime": "^0.1.0",

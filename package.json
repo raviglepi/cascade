@@ -1,5 +1,6 @@
 {
   "name": "cascade-workspace",
+  "private": true,
   "workspaces": [
     "tools/*",
     "packages/**"
@@ -9,25 +10,30 @@
     "prepare": "effect-tsgo patch --oxlint --no-typescript",
     "lint": "cd packages && oxlint",
     "fix": "cd packages && bun lint -- --fix",
-    "fmt": "oxfmt . '!tools/**/*.*/**/*'",
+    "fmt": "oxfmt --write '!tools/**/*.*/**/*'",
+    "fmt:check": "oxfmt --check '!tools/**/*.*/**/*'",
     "test": "cd packages && vitest run",
     "build": "pnpm --filter './packages/*' exec bun vite build",
-    "docs": "pnpm --filter './packages/*' exec bun docgen"
+    "docs": "pnpm --filter './packages/*' exec bun docgen",
+    "check": "bun fmt:check && bun lint && bun run test && bun docs && bun run build"
   },
   "dependencies": {
     "effect": "^4.0.0-rc"
   },
   "devDependencies": {
+    "@changesets/cli": "3.0.1",
     "@effect/docgen": "^4.0.0-rc",
     "@effect/tsgo": "^0.38.0",
     "@effect/vitest": "^4.0.0-rc",
+    "@oxlint/plugins": "1.80.0",
     "@types/bun": "latest",
     "oxfmt": "^0.65.0",
-    "oxlint": "^1.80.0",
+    "oxlint": "1.80.0",
     "oxlint-tsgolint": "^7.0.2001",
     "type-fest": "^5.9.0",
     "typescript": "^7",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
-  }
+  },
+  "packageManager": "bun@1.4.0"
 }
