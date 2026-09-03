@@ -37,12 +37,18 @@
     "packages/core": {
       "name": "cascade",
       "version": "0.1.0",
+      "dependencies": {
+        "effect": "^4.0.0-rc",
+      },
     },
     "packages/react": {
       "name": "@cascade/react",
       "version": "0.1.0",
       "dependencies": {
+        "@effect/atom-react": "4.0.0-rc.112",
         "cascade": "workspace:*",
+        "effect": "4.0.0-rc.112",
+        "scheduler": "^0.27.0",
       },
       "devDependencies": {
         "@types/react": "^19.2.0",
@@ -103,6 +109,8 @@
     "@clack/core": ["@clack/core@1.4.3", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ=="],
 
     "@clack/prompts": ["@clack/prompts@1.7.0", "", { "dependencies": { "@clack/core": "1.4.3", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A=="],
+
+    "@effect/atom-react": ["@effect/atom-react@4.0.0-rc.112", "", { "peerDependencies": { "effect": "^4.0.0-rc.112", "react": ">=19.0.0 <20.0.0", "scheduler": ">=0.25.0 <0.28.0" } }, "sha512-Ksf90KQa6D4UDnMj4M84arlVKNIuwxxF2GvgXBzuaYi2LsgririsUhKQ5SYaK1euf8oIYeamEuthoZSbUQmIhw=="],
 
     "@effect/docgen": ["@effect/docgen@4.0.0-rc.112", "", { "dependencies": { "@babel/code-frame": "^8.0.0", "@effect/markdown-toc": "^0.1.0", "@effect/platform-node": "^4.0.0-rc.112", "chalk": "^6.0.0", "doctrine": "^3.0.0", "effect": "^4.0.0-rc.112", "glob": "^13.0.6", "prettier": "^3.9.6", "ts-morph": "^28.0.0", "tsconfck": "^3.1.6" }, "peerDependencies": { "tsx": ">=4.19.3 <5.0.0", "typescript": ">=5.8.2 <7.0.0" }, "bin": { "docgen": "./dist/bin.js" } }, "sha512-fZx5iUAS+fqYJjqqQU3IB/E3sjBkUoECSGPq2OHSMuTKoNaSw2ZiKuAk9v4hhMz1QPCDwIwJot+hmUjAgcnwcA=="],
 

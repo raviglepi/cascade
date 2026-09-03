@@ -6,5 +6,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "effect": "workspace:"
   }
 }

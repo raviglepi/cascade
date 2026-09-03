@@ -2,7 +2,7 @@ import type {TokenInstanceRef} from "cascade";
 import type {ImageSource} from "../src/index.ts";
 
 import {Rule, Rules, Token} from "cascade";
-import {ButtonElement, Column, Gap, Image, OnClick, Padding, Row, Text} from "../src/index.ts";
+import {Column, Element, Event, Image, Listener, Row, Size, Style, Text} from "../src/index.ts";
 
 export interface ContactRowInput {
   readonly compact?: boolean;
@@ -24,7 +24,7 @@ export const LastSeen = Token("LastSeen")<string>(Text());
 export const ContactRules = Rules({
   contact: {
     compact: Rule(Contact(Compact()), function* (contact) {
-      const column = contact.get(ButtonElement).get(Row).get(ContactDetails).get(Column);
+      const column = contact.get(Element.Button).get(Row).get(ContactDetails).get(Column);
       yield* column.pipe(Token.del(ChatPreview()));
     }),
   },
@@ -34,14 +34,16 @@ export function createContactRow(input: ContactRowInput): TokenInstanceRef {
   const variant = input.compact === true ? [Compact()] : [];
   return Contact(
     ...variant,
-    OnClick(input.onSelect),
-    ButtonElement(
+    Event.OnClick(Listener(input.onSelect)),
+    Element.Button(
       Row(
         Avatar(input.image),
-        ContactDetails(Column(ContactName(input.name), ChatPreview(input.preview), Gap(2))),
+        ContactDetails(
+          Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(Size(2))),
+        ),
         LastSeen(input.time),
-        Gap(12),
-        Padding(10),
+        Style.Gap(Size(12)),
+        Style.Padding(Size(10)),
       ),
     ),
   );

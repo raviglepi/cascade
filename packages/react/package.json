@@ -9,7 +9,10 @@
     "./demo": "./demo/contact-row.tsx"
   },
   "dependencies": {
-    "cascade": "workspace:*"
+    "@effect/atom-react": "4.0.0-rc.112",
+    "cascade": "workspace:*",
+    "effect": "4.0.0-rc.112",
+    "scheduler": "^0.27.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

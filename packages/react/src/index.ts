@@ -1,5 +1,24 @@
 /** @since 0.1.0 */
 
+import type {
+  EventFamily as PrimitiveEventFamily,
+  EventProperty as PrimitiveEventProperty,
+  EventToken as PrimitiveEventToken,
+  StyleFamily as PrimitiveStyleFamily,
+  StyleProperty as PrimitiveStyleProperty,
+  StyleToken as PrimitiveStyleToken,
+} from "./primitives.ts";
+
+import {
+  Color as color,
+  Element as element,
+  Enum as enumValue,
+  Event as generatedEvent,
+  Listener as listener,
+  Size as size,
+  Style as generatedStyle,
+} from "./primitives.ts";
+
 export {
   /** @since 0.1.0 */
   CascadeErrorBoundary,
@@ -14,39 +33,44 @@ export type {
 } from "./errors.tsx";
 export {
   /** @since 0.1.0 */
-  ButtonElement,
-  /** @since 0.1.0 */
-  Color,
-  /** @since 0.1.0 */
   Column,
   /** @since 0.1.0 */
-  Gap,
-  /** @since 0.1.0 */
   Image,
-  /** @since 0.1.0 */
-  OnClick,
-  /** @since 0.1.0 */
-  OnKeyDown,
-  /** @since 0.1.0 */
-  Opacity,
-  /** @since 0.1.0 */
-  Padding,
   /** @since 0.1.0 */
   Row,
   /** @since 0.1.0 */
   Text,
-  /** @since 0.1.0 */
-  Visibility,
-  /** @since 0.1.0 */
 } from "./primitives.ts";
+/** @internal */
+export const Color = color;
+/** @internal */
+export const Enum = enumValue;
+/** @internal */
+export const Listener = listener;
+/** @internal */
+export const Size = size;
 export type {
   /** @since 0.1.0 */
   ImageSource,
-  /** @since 0.1.0 */
-  SpacingValue,
-  /** @since 0.1.0 */
-  VisibilityValue,
 } from "./primitives.ts";
+/** @internal */
+export const Event = generatedEvent;
+/** @internal */
+export const Style = generatedStyle;
+/** @internal */
+export const Element = element;
+/** @internal */
+export type EventFamily = PrimitiveEventFamily;
+/** @internal */
+export type EventProperty = PrimitiveEventProperty;
+/** @internal */
+export type EventToken<Property extends EventProperty> = PrimitiveEventToken<Property>;
+/** @internal */
+export type StyleFamily = PrimitiveStyleFamily;
+/** @internal */
+export type StyleProperty = PrimitiveStyleProperty;
+/** @internal */
+export type StyleToken<Property extends StyleProperty> = PrimitiveStyleToken<Property>;
 export {
   /** @since 0.1.0 */
   createReactRenderer,

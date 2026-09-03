@@ -387,7 +387,7 @@ export function isTokenDefinition(
   return definitions.has(Object(value));
 }
 
-/** @since 0.1.0 */
+/** @internal */
 export function isTokenInstance(value: TokenTerm): value is TokenInstanceRef {
   return isInstance(value);
 }
