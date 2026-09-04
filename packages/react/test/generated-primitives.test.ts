@@ -9,8 +9,8 @@ describe("generated React token families", () => {
     const flexWrap = Style.FlexWrap(Enum("wrap"));
 
     expect(flexWrap.definition).toBe(Style.FlexWrap);
-    expect(Style.Padding(Size(12)).definition).toBe(Style.Padding);
-    expect(Style.BorderColor(Color("red")).definition).toBe(Style.BorderColor);
+    expect(Style.Padding(Size.Rm(12)).definition).toBe(Style.Padding);
+    expect(Style.BorderColor(Color.Css({value: "red"})).definition).toBe(Style.BorderColor);
     expect(Style.Opacity(0.5).definition).toBe(Style.Opacity);
     expect(Style.Flex("1 0").definition).toBe(Style.Flex);
 

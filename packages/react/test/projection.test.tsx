@@ -50,7 +50,11 @@ describe("React projection", () => {
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
       renderer.render(
-        Card(Style.Color(Color("navy")), Row(Text("Primary")), Column(Text("Secondary"))),
+        Card(
+          Style.Color(Color.Css({value: "navy"})),
+          Row(Text("Primary")),
+          Column(Text("Secondary")),
+        ),
       ),
     );
 

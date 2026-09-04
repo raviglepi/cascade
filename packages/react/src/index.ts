@@ -49,6 +49,7 @@ export const Enum = enumValue;
 export const Listener = listener;
 /** @internal */
 export const Size = size;
+export type {Color as ColorValue, ColorError, Size as SizeValue} from "./semantic-values.ts";
 export type {
   /** @since 0.1.0 */
   ImageSource,

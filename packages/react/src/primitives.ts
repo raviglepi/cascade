@@ -128,13 +128,13 @@ type RawPropertyInput<Value> =
  */
 type PropertyInput<Property extends StyleProperty, Value = PropertyValue<Property>> =
   IsColor<Value> extends true
-    ? ColorValue<Extract<Value, string>>
+    ? ColorValue
     : IsPlainNumber<Value> extends true
       ? Extract<Value, number>
       : IsFiniteEnum<Value> extends true
         ? EnumValue<Extract<Value, string>>
         : Property extends SizeProperty
-          ? SizeValue<Extract<Value, string | number>>
+          ? SizeValue
           : RawPropertyInput<Value>;
 
 /** @internal */

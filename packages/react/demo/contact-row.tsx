@@ -39,11 +39,11 @@ export function createContactRow(input: ContactRowInput): TokenInstanceRef {
       Row(
         Avatar(input.image),
         ContactDetails(
-          Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(Size(2))),
+          Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(Size.Rm(2))),
         ),
         LastSeen(input.time),
-        Style.Gap(Size(12)),
-        Style.Padding(Size(10)),
+        Style.Gap(Size.Rm(12)),
+        Style.Padding(Size.Rm(10)),
       ),
     ),
   );

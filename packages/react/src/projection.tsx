@@ -86,7 +86,7 @@ function setEvent(options: {
   Object.assign(options.props, {[options.property]: options.value});
 }
 
-const isStyleValue: (value: TokenValue) => value is StyleValue = Schema.is(StyleValueSchema);
+const isStyleValue = (value: TokenValue): value is StyleValue => Schema.is(StyleValueSchema)(value);
 const isManagedListener: (value: TokenValue) => value is ManagedListener =
   Schema.is(ListenerSchema);
 
