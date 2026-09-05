@@ -1,8 +1,10 @@
 import type {TokenInstanceRef} from "cascade";
 import type {ImageSource} from "../src/index.ts";
 
+import {Effect} from "effect";
+
 import {Rule, Rules, Token} from "cascade";
-import {Column, Element, Event, Image, Listener, Row, Size, Style, Text} from "../src/index.ts";
+import {Column, Element, Event, Image, Row, Style, Text} from "../src/index.ts";
 
 export interface ContactRowInput {
   readonly compact?: boolean;
@@ -34,16 +36,14 @@ export function createContactRow(input: ContactRowInput): TokenInstanceRef {
   const variant = input.compact === true ? [Compact()] : [];
   return Contact(
     ...variant,
-    Event.OnClick(Listener(input.onSelect)),
+    Event.OnClick(() => Effect.sync(input.onSelect)),
     Element.Button(
       Row(
         Avatar(input.image),
-        ContactDetails(
-          Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(Size.Rm(2))),
-        ),
+        ContactDetails(Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(2))),
         LastSeen(input.time),
-        Style.Gap(Size.Rm(12)),
-        Style.Padding(Size.Rm(10)),
+        Style.Gap(12),
+        Style.Padding(10),
       ),
     ),
   );

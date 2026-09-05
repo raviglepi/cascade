@@ -2,24 +2,23 @@ import type {ReactElement, ReactNode} from "react";
 import type {CascadeRuntime, TokenRoot} from "cascade";
 import type {ErrorReporter} from "./errors.tsx";
 
+import {Effect, Layer, Stream} from "effect";
+
 import {RegistryProvider, useAtomSuspense} from "@effect/atom-react";
-import * as Effect from "effect/Effect";
-import * as Fiber from "effect/Fiber";
-import * as Layer from "effect/Layer";
-import * as Stream from "effect/Stream";
-import * as SubscriptionRef from "effect/SubscriptionRef";
-import * as Atom from "effect/unstable/reactivity/Atom";
+import {Atom} from "effect/unstable/reactivity";
 import {createElement, useMemo} from "react";
 import {isTokenInstance} from "cascade";
 import {CascadeErrorBoundary} from "./errors.tsx";
 import {ListenerDispatcher, project} from "./projection.tsx";
 
+/** [since](since) 0.1.0 */
 export interface ReactRendererOptions {
   readonly fallback?: ReactNode;
   readonly reportError: ErrorReporter;
   readonly runtime: CascadeRuntime;
 }
 
+/** [since](since) 0.1.0 */
 export interface ReactRenderer {
   render(...roots: readonly TokenRoot[]): ReactElement;
 }
@@ -30,11 +29,7 @@ interface ProjectionProps {
   readonly runtime: CascadeRuntime;
 }
 
-/**
- * Sends asynchronous DOM-listener work into Effect from React's callback boundary.
- *
- * @internal
- */
+/** [internal](internal) */
 function makeListenerDispatcher(reportError: ErrorReporter): ListenerDispatcher["Service"] {
   let service: ListenerDispatcher["Service"];
   service = ListenerDispatcher.of({
@@ -51,14 +46,7 @@ function makeListenerDispatcherLayer(reportError: ErrorReporter) {
   return Layer.succeed(ListenerDispatcher, makeListenerDispatcher(reportError));
 }
 
-/**
- * Creates a projection stream with a scope owned by the Atom registry.
- *
- * The failure subscription is acquired before the graph is mounted, so a rule
- * that fails while establishing initial state is still reported.
- *
- * @internal
- */
+/** [internal](internal) */
 function makeProjectionStream({reportError, roots, runtime}: ProjectionProps) {
   return Stream.scoped(
     Stream.unwrap(
@@ -74,26 +62,19 @@ function makeProjectionStream({reportError, roots, runtime}: ProjectionProps) {
               ),
             ),
           ),
+          {startImmediately: true},
         );
         const mounted = yield* Effect.acquireRelease(
           runtime.mount(...roots),
           mounted => mounted.release,
         );
-        return Stream.concat(
-          Stream.fromEffect(SubscriptionRef.get(mounted.revision)),
-          SubscriptionRef.changes(mounted.revision),
-        ).pipe(Stream.mapEffect(() => project({roots: mounted.roots})));
+        return mounted.changes.pipe(Stream.mapEffect(() => project({roots: mounted.roots})));
       }),
     ),
   );
 }
 
-/**
- * Creates an Atom whose registry owns the live Cascade mount and all of its
- * subscriptions.
- *
- * @internal
- */
+/** [internal](internal) */
 function makeProjectionAtom(props: ProjectionProps) {
   return Atom.make(
     makeProjectionStream(props).pipe(
@@ -102,29 +83,31 @@ function makeProjectionAtom(props: ProjectionProps) {
   );
 }
 
-/**
- * Runs the scoped projection once for React's synchronous server renderer.
- *
- * Server rendering has no React effect lifecycle or Atom registry lifetime,
- * so this is the deliberate integration edge where the finished Effect is
- * executed synchronously and released before markup is returned.
- *
- * @internal
- */
+/** [internal](internal) */
 function projectServer({reportError, roots, runtime}: ProjectionProps): readonly ReactElement[] {
   return Effect.runSync(
-    Effect.gen(function* () {
-      const failureFiber = yield* runtime.ruleFailures.pipe(
-        Stream.runForEach(failure => Effect.sync(() => reportError({failure, kind: "rule"}))),
-        Effect.forkChild,
-      );
-      yield* Effect.yieldNow;
-      const mounted = yield* runtime.mount(...roots);
-      return yield* project({roots: mounted.roots}).pipe(
-        Effect.ensuring(mounted.release),
-        Effect.ensuring(Fiber.interrupt(failureFiber)),
-      );
-    }).pipe(Effect.provideService(ListenerDispatcher, makeListenerDispatcher(reportError))),
+    Effect.scoped(
+      Effect.gen(function* () {
+        const pullFailures = yield* Stream.toPull(runtime.ruleFailures);
+        yield* Effect.forkScoped(
+          Effect.forever(
+            Effect.flatMap(pullFailures, failures =>
+              Effect.forEach(
+                failures,
+                failure => Effect.sync(() => reportError({failure, kind: "rule"})),
+                {discard: true},
+              ),
+            ),
+          ),
+          {startImmediately: true},
+        );
+        const mounted = yield* Effect.acquireRelease(
+          runtime.mount(...roots),
+          mounted => mounted.release,
+        );
+        return yield* project({roots: mounted.roots});
+      }).pipe(Effect.provideService(ListenerDispatcher, makeListenerDispatcher(reportError))),
+    ),
   );
 }
 
@@ -145,6 +128,7 @@ function rootId(root: TokenRoot): number {
   return isTokenInstance(root) ? root.id : root.instance.id;
 }
 
+/** [since](since) 0.1.0 */
 export function createReactRenderer(options: ReactRendererOptions): ReactRenderer {
   const fallback =
     options.fallback ?? createElement("div", {role: "alert"}, "Unable to render this content.");

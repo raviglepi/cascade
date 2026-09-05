@@ -1,23 +1,8 @@
-/** @since 0.1.0 */
-
-import type {
-  EventFamily as PrimitiveEventFamily,
-  EventProperty as PrimitiveEventProperty,
-  EventToken as PrimitiveEventToken,
-  StyleFamily as PrimitiveStyleFamily,
-  StyleProperty as PrimitiveStyleProperty,
-  StyleToken as PrimitiveStyleToken,
-} from "./primitives.ts";
-
-import {
-  Color as color,
-  Element as element,
-  Enum as enumValue,
-  Event as generatedEvent,
-  Listener as listener,
-  Size as size,
-  Style as generatedStyle,
-} from "./primitives.ts";
+/**
+ * [since](since) 0.1.0
+ *
+ * @since 0.1.0
+ */
 
 export {
   /** @since 0.1.0 */
@@ -35,43 +20,38 @@ export {
   /** @since 0.1.0 */
   Column,
   /** @since 0.1.0 */
+  Element,
+  /** @since 0.1.0 */
+  Event,
+  /** @since 0.1.0 */
   Image,
   /** @since 0.1.0 */
   Row,
   /** @since 0.1.0 */
+  Style,
+  /** @since 0.1.0 */
   Text,
 } from "./primitives.ts";
-/** @internal */
-export const Color = color;
-/** @internal */
-export const Enum = enumValue;
-/** @internal */
-export const Listener = listener;
-/** @internal */
-export const Size = size;
-export type {Color as ColorValue, ColorError, Size as SizeValue} from "./semantic-values.ts";
 export type {
   /** @since 0.1.0 */
+  ElementFamily,
+  /** @since 0.1.0 */
+  ElementToken,
+  /** @since 0.1.0 */
+  EventFamily,
+  /** @since 0.1.0 */
+  EventProperty,
+  /** @since 0.1.0 */
+  EventToken,
+  /** @since 0.1.0 */
   ImageSource,
+  /** @since 0.1.0 */
+  StyleFamily,
+  /** @since 0.1.0 */
+  StyleProperty,
+  /** @since 0.1.0 */
+  StyleToken,
 } from "./primitives.ts";
-/** @internal */
-export const Event = generatedEvent;
-/** @internal */
-export const Style = generatedStyle;
-/** @internal */
-export const Element = element;
-/** @internal */
-export type EventFamily = PrimitiveEventFamily;
-/** @internal */
-export type EventProperty = PrimitiveEventProperty;
-/** @internal */
-export type EventToken<Property extends EventProperty> = PrimitiveEventToken<Property>;
-/** @internal */
-export type StyleFamily = PrimitiveStyleFamily;
-/** @internal */
-export type StyleProperty = PrimitiveStyleProperty;
-/** @internal */
-export type StyleToken<Property extends StyleProperty> = PrimitiveStyleToken<Property>;
 export {
   /** @since 0.1.0 */
   createReactRenderer,

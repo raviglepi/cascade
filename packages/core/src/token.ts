@@ -434,22 +434,39 @@ interface NormalizedTerms {
   readonly relations: readonly TokenInstanceRef[];
 }
 
+interface DeclarationInput {
+  readonly relationInput: readonly TokenTerm[];
+  readonly valueState: TokenValueState;
+}
+
+function appendNegative(negatives: TokenDefinitionRef[], definition: TokenDefinitionRef): void {
+  if (!negatives.includes(definition)) negatives.push(definition);
+}
+
+function cloneRelation(term: TokenInstanceRef | TokenAlias): TokenInstanceRef {
+  return isAlias(term) ? cloneInstance(term.instance) : term;
+}
+
+function replaceRelation(relations: TokenInstanceRef[], incoming: TokenInstanceRef): void {
+  const retained = relations.filter(
+    existing =>
+      existing.definition !== incoming.definition &&
+      !definitionsConflict(existing.definition, incoming.definition),
+  );
+  retained.push(incoming);
+  relations.splice(0, relations.length, ...retained);
+}
+
 function normalizeTerms(terms: readonly TokenTerm[]): NormalizedTerms {
   const negatives: TokenDefinitionRef[] = [];
   const relations: TokenInstanceRef[] = [];
   for (const term of terms) {
     if (isNotTerm(term)) {
-      if (!negatives.includes(term.definition)) negatives.push(term.definition);
+      appendNegative(negatives, term.definition);
       continue;
     }
-    const incoming = isAlias(term) ? cloneInstance(term.instance) : term;
-    const retained = relations.filter(
-      existing =>
-        existing.definition !== incoming.definition &&
-        !definitionsConflict(existing.definition, incoming.definition),
-    );
-    retained.push(incoming);
-    relations.splice(0, relations.length, ...retained);
+    // SAFETY: Not terms return from this loop above, leaving only instances and aliases.
+    replaceRelation(relations, cloneRelation(term as TokenInstanceRef | TokenAlias));
   }
   return {negatives, relations};
 }
@@ -461,15 +478,7 @@ function makeDefinition<Name extends string, Value extends TokenValue>(
   const normalizedDefaults = normalizeTerms(defaults);
   let definition: TokenDefinitionRef;
   const declaration = (...input: readonly (TokenTerm | Value)[]) => {
-    const relationInput: TokenTerm[] = [];
-    let valueState: TokenValueState = {kind: "absent"};
-    for (const [index, item] of input.entries()) {
-      if (index === 0 && !isTokenTerm(item)) {
-        valueState = {kind: "present", value: item};
-      } else if (isTokenTerm(item)) {
-        relationInput.push(item);
-      }
-    }
+    const {relationInput, valueState} = parseDeclarationInput(input);
     const normalized = normalizeTerms([...defaults.map(cloneTerm), ...relationInput]);
     return new DetachedToken({
       definition,
@@ -498,6 +507,15 @@ function makeDefinition<Name extends string, Value extends TokenValue>(
   definitions.add(callable);
   // @ts-expect-error SAFETY: the callable parser enforces the public value-first overload at runtime.
   return callable as TokenDefinition<Name, Value, TokenDefinitionRef, TokenDefinitionRef>;
+}
+
+function parseDeclarationInput<Value extends TokenValue>(
+  input: readonly (TokenTerm | Value)[],
+): DeclarationInput {
+  const [first, ...rest] = input;
+  if (input.length === 0 || isTokenTerm(first))
+    return {relationInput: input.filter(isTokenTerm), valueState: {kind: "absent"}};
+  return {relationInput: rest.filter(isTokenTerm), valueState: {kind: "present", value: first}};
 }
 
 function isTokenTerm<Value>(value: TokenTerm | Value): value is TokenTerm {

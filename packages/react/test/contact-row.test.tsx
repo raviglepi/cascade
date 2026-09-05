@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
 
-import * as Effect from "effect/Effect";
+import {Effect} from "effect";
+
 import {renderToStaticMarkup} from "react-dom/server";
 import {Cascade} from "cascade";
 import {createContactRow, ContactRules} from "../demo/contact-row.tsx";
@@ -8,7 +9,7 @@ import {createReactRenderer} from "../src/index.ts";
 
 describe("React contact row", () => {
   it("projects semantic contact data and host styles", () => {
-    const runtime = Effect.runSync(new Cascade().extend(ContactRules).gen());
+    const runtime = Effect.runSync(new Cascade().extend(ContactRules).make());
     const reports: string[] = [];
     const renderer = createReactRenderer({
       reportError: report => reports.push(report.kind),
@@ -37,7 +38,7 @@ describe("React contact row", () => {
   });
 
   it("removes only the preview in compact mode", () => {
-    const runtime = Effect.runSync(new Cascade().extend(ContactRules).gen());
+    const runtime = Effect.runSync(new Cascade().extend(ContactRules).make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
       renderer.render(

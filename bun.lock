@@ -38,7 +38,7 @@
       "name": "cascade",
       "version": "0.1.0",
       "dependencies": {
-        "effect": "^4.0.0-rc",
+        "effect": "4.0.0-rc.112",
       },
     },
     "packages/react": {

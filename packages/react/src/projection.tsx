@@ -1,53 +1,25 @@
 import type * as React from "react";
 import type {LiveToken, TokenDefinitionRef, TokenValue} from "cascade";
-import type {StyleValue} from "./semantic-values.ts";
 
-import * as Context from "effect/Context";
-import * as Effect from "effect/Effect";
-import * as Schema from "effect/Schema";
+import {Context, Effect, Predicate, Schema} from "effect";
+
 import {cloneElement, createElement} from "react";
 import {ProjectionError} from "./errors.tsx";
-import {
-  Column,
-  Image,
-  Row,
-  ListenerSchema,
-  StyleValueSchema,
-  Text,
-  getDecoratorMetadata,
-  getElementMetadata,
-  toCssValue,
-  unwrapListener,
-} from "./primitives.ts";
+import {Column, Image, Row, Text, getDecoratorMetadata, getElementMetadata} from "./primitives.ts";
 
-type EventHandler = (event: never) => void;
-
-interface Listener<Value extends EventHandler = EventHandler> {
-  readonly tokenId: number;
-  readonly value: Value;
-}
-
-type ManagedListener = {readonly _tag: "Listener"; readonly handle: EventHandler};
-
+type EventHandler = (event: React.SyntheticEvent<HTMLElement>) => Effect.Effect<void, unknown>;
+type Handler = {readonly tokenId: number; readonly value: EventHandler};
 interface Decorators {
-  readonly events: ReadonlyMap<string, readonly Listener[]>;
+  readonly events: ReadonlyMap<string, readonly Handler[]>;
   readonly style: React.CSSProperties;
 }
-
 type HostProps = React.HTMLAttributes<HTMLElement> & {
   readonly alt?: string;
   readonly src?: string;
   readonly type?: string;
-};
+} & React.Attributes;
 
-/**
- * Dispatches listener effects from React's imperative DOM callback boundary.
- *
- * The projection is deliberately parameterized by this service: it describes
- * listener work as `Effect` values without selecting a runtime for it.
- *
- * @internal
- */
+/** [internal](internal) */
 export class ListenerDispatcher extends Context.Service<
   ListenerDispatcher,
   {
@@ -60,6 +32,8 @@ export class ListenerDispatcher extends Context.Service<
 >()("@cascade/react/ListenerDispatcher") {}
 
 const emptyDecorators: Decorators = {events: new Map(), style: {}};
+const ImageSourceSchema = Schema.Struct({alt: Schema.String, src: Schema.String});
+
 function reads(token: LiveToken, definition: TokenDefinitionRef): TokenValue {
   if (token.definition !== definition) {
     throw new ProjectionError({
@@ -70,57 +44,58 @@ function reads(token: LiveToken, definition: TokenDefinitionRef): TokenValue {
   return token.value();
 }
 
-function setStyle(options: {
+function isListener(value: TokenValue): value is EventHandler {
+  return Predicate.isFunction(value);
+}
+
+function requiredHandler(options: {
+  readonly token: LiveToken;
+  readonly value: TokenValue;
+}): Handler {
+  if (!isListener(options.value)) {
+    throw new ProjectionError({
+      cause: new Error(`${options.token.definition.name} requires an Effect listener`),
+      tokenId: options.token.id,
+    });
+  }
+  return {tokenId: options.token.id, value: options.value};
+}
+
+function appendListener(options: {
+  readonly events: Map<string, readonly Handler[]>;
   readonly property: string;
+  readonly token: LiveToken;
+  readonly value: TokenValue;
+}): void {
+  if (options.value === undefined) return;
+  const listeners = options.events.get(options.property) ?? [];
+  options.events.set(options.property, [...listeners, requiredHandler(options)]);
+}
+
+function collectDecorator(options: {
+  readonly events: Map<string, readonly Handler[]>;
   readonly style: React.CSSProperties;
-  readonly value: number | string;
+  readonly token: LiveToken;
 }): void {
-  Object.assign(options.style, {[options.property]: options.value});
+  const metadata = getDecoratorMetadata(options.token.definition);
+  if (metadata === undefined) return;
+  const value = reads(options.token, metadata.definition);
+  if (metadata.kind === "style") {
+    Object.assign(options.style, {[metadata.property]: value});
+    return;
+  }
+  appendListener({
+    events: options.events,
+    property: metadata.property,
+    token: options.token,
+    value,
+  });
 }
-
-function setEvent(options: {
-  readonly property: string;
-  readonly props: Partial<HostProps>;
-  readonly value: EventHandler;
-}): void {
-  Object.assign(options.props, {[options.property]: options.value});
-}
-
-const isStyleValue = (value: TokenValue): value is StyleValue => Schema.is(StyleValueSchema)(value);
-const isManagedListener: (value: TokenValue) => value is ManagedListener =
-  Schema.is(ListenerSchema);
 
 function collectDecorators(tokens: readonly LiveToken[], inherited: Decorators): Decorators {
   const events = new Map(inherited.events);
   const style: React.CSSProperties = {...inherited.style};
-  for (const token of tokens) {
-    const metadata = getDecoratorMetadata(token.definition);
-    if (metadata === undefined) continue;
-    if (metadata.kind === "style") {
-      const value = reads(token, metadata.definition);
-      if (!isStyleValue(value)) {
-        throw new ProjectionError({
-          cause: new Error(`${metadata.definition.name} requires a CSS-compatible value`),
-          tokenId: token.id,
-        });
-      }
-      setStyle({property: metadata.property, style, value: toCssValue(value)});
-      continue;
-    }
-    const value = reads(token, metadata.definition);
-    if (value === undefined) continue;
-    if (!isManagedListener(value)) {
-      throw new ProjectionError({
-        cause: new Error(`${metadata.definition.name} requires a managed listener`),
-        tokenId: token.id,
-      });
-    }
-    const listeners = events.get(metadata.property) ?? [];
-    events.set(metadata.property, [
-      ...listeners,
-      {tokenId: token.id, value: unwrapListener(value)},
-    ]);
-  }
+  for (const token of tokens) collectDecorator({events, style, token});
   return {events, style};
 }
 
@@ -128,25 +103,25 @@ function isDecorator(token: LiveToken): boolean {
   return getDecoratorMetadata(token.definition) !== undefined;
 }
 
-function listener(options: {
+function makeListener(options: {
   readonly dispatcher: ListenerDispatcher["Service"];
-  readonly listeners: readonly Listener[];
-}): EventHandler | undefined {
+  readonly listeners: readonly Handler[];
+}): ((event: React.SyntheticEvent<HTMLElement>) => void) | undefined {
   if (options.listeners.length === 0) return undefined;
-  const invoke = (event: never): void => {
+  return event => {
     options.dispatcher.dispatch(
       Effect.forEach(
         options.listeners,
         item =>
-          Effect.try({
-            try: () => item.value(event),
-            catch: cause => ({cause, tokenId: item.tokenId}),
-          }).pipe(Effect.catch(options.dispatcher.report)),
+          item
+            .value(event)
+            .pipe(
+              Effect.catchCause(cause => options.dispatcher.report({cause, tokenId: item.tokenId})),
+            ),
         {discard: true},
       ),
     );
   };
-  return invoke;
 }
 
 function applyDecorators(options: {
@@ -158,8 +133,8 @@ function applyDecorators(options: {
     style: {...options.decorators.style, ...readStyle(options.element)},
   };
   for (const [property, listeners] of options.decorators.events) {
-    const handler = listener({dispatcher: options.dispatcher, listeners});
-    if (handler !== undefined) setEvent({property, props: changes, value: handler});
+    const listener = makeListener({dispatcher: options.dispatcher, listeners});
+    if (listener !== undefined) Object.assign(changes, {[property]: listener});
   }
   return cloneElement(options.element, changes);
 }
@@ -170,10 +145,54 @@ const StylePropsSchema = Schema.Struct({
   ),
 });
 
-const readStyle = (element: React.ReactElement) => {
-  const props = element.props;
-  return Schema.is(StylePropsSchema)(props) ? props.style : undefined;
-};
+function readStyle(element: React.ReactElement): React.CSSProperties | undefined {
+  return Schema.is(StylePropsSchema)(element.props) ? element.props.style : undefined;
+}
+
+function elementHost(options: {
+  readonly children: readonly React.ReactElement[];
+  readonly token: LiveToken;
+}): React.ReactElement | undefined {
+  const element = getElementMetadata(options.token.definition);
+  if (element === undefined) return undefined;
+  const props: HostProps =
+    element.tag === "button" ? {key: options.token.id, type: "button"} : {key: options.token.id};
+  return createElement<HostProps>(element.tag, props, options.children);
+}
+
+const layoutStyles = new Map<TokenDefinitionRef, React.CSSProperties>([
+  [Row, {display: "flex", flexDirection: "row"}],
+  [Column, {display: "flex", flexDirection: "column"}],
+]);
+
+function layoutHost(options: {
+  readonly children: readonly React.ReactElement[];
+  readonly token: LiveToken;
+}): React.ReactElement | undefined {
+  const style = layoutStyles.get(options.token.definition);
+  if (style === undefined) return undefined;
+  return createElement<HostProps>("div", {key: options.token.id, style}, options.children);
+}
+
+function textHost(token: LiveToken, value: TokenValue): React.ReactElement | undefined {
+  if (token.definition !== Text) return undefined;
+  return createElement<HostProps>(
+    "span",
+    {key: token.id},
+    value === undefined ? "" : String(value),
+  );
+}
+
+function imageHost(token: LiveToken, value: TokenValue): React.ReactElement | undefined {
+  if (token.definition !== Image) return undefined;
+  if (!Schema.is(ImageSourceSchema)(value)) {
+    throw new ProjectionError({
+      cause: new Error("Image requires an { src, alt } value"),
+      tokenId: token.id,
+    });
+  }
+  return createElement<HostProps>("img", {alt: value.alt, key: token.id, src: value.src});
+}
 
 function hostElement(options: {
   readonly children: readonly React.ReactElement[];
@@ -181,62 +200,96 @@ function hostElement(options: {
   readonly token: LiveToken;
 }): React.ReactElement | undefined {
   const value = options.token.hasValue() ? options.token.value() : options.inheritedValue;
-  const element = getElementMetadata(options.token.definition);
-  if (element !== undefined) {
-    if (element.tag === "button") {
-      return createElement<HostProps>(
-        element.tag,
-        {key: options.token.id, type: "button"},
-        options.children,
-      );
-    }
-    return createElement<HostProps>(element.tag, {key: options.token.id}, options.children);
-  }
-  if (options.token.definition === Row) {
-    return createElement<HostProps>(
-      "div",
-      {key: options.token.id, style: {display: "flex", flexDirection: "row"}},
-      options.children,
-    );
-  }
-  if (options.token.definition === Column) {
-    return createElement<HostProps>(
-      "div",
-      {key: options.token.id, style: {display: "flex", flexDirection: "column"}},
-      options.children,
-    );
-  }
-  if (options.token.definition === Text) {
-    return createElement<HostProps>(
-      "span",
-      {key: options.token.id},
-      value === undefined ? "" : String(value),
-    );
-  }
-  if (options.token.definition === Image) {
-    if (value === undefined) {
-      throw new ProjectionError({
-        cause: new Error("Image requires an { src, alt } value"),
-        tokenId: options.token.id,
-      });
-    }
-    if (!Schema.is(ImageSourceSchema)(value)) {
-      throw new ProjectionError({
-        cause: new Error("Image requires an { src, alt } value"),
-        tokenId: options.token.id,
-      });
-    }
-    const source = value;
-    return createElement<HostProps>("img", {
-      alt: source.alt,
-      key: options.token.id,
-      src: source.src,
-    });
-  }
-  return undefined;
+  return [
+    elementHost(options),
+    layoutHost(options),
+    textHost(options.token, value),
+    imageHost(options.token, value),
+  ].find(isElement);
 }
 
-const ImageSourceSchema = Schema.Struct({alt: Schema.String, src: Schema.String});
+function isElement(value: React.ReactElement | undefined): value is React.ReactElement {
+  return value !== undefined;
+}
+
+function nextPath(path: ReadonlySet<number>, token: LiveToken): ReadonlySet<number> {
+  if (path.has(token.id)) {
+    throw new ProjectionError({
+      cause: new Error("A cycle was found while projecting Cascade tokens"),
+      tokenId: token.id,
+    });
+  }
+  return new Set(path).add(token.id);
+}
+
+function projectContent(options: {
+  readonly dispatcher: ListenerDispatcher["Service"];
+  readonly inheritedValue: TokenValue;
+  readonly path: ReadonlySet<number>;
+  readonly relations: readonly LiveToken[];
+}): readonly React.ReactElement[] {
+  const content = options.relations.filter(token => !isDecorator(token));
+  return content.flatMap(token =>
+    projectToken({
+      dispatcher: options.dispatcher,
+      inheritedValue: options.inheritedValue,
+      path: options.path,
+      token,
+    }),
+  );
+}
+
+function onlyChild(children: readonly React.ReactElement[]): React.ReactElement {
+  const child = children[0];
+  if (child === undefined) throw new Error("Expected one projected child");
+  return child;
+}
+
+function decorateHost(options: {
+  readonly decorators: Decorators;
+  readonly dispatcher: ListenerDispatcher["Service"];
+  readonly host: React.ReactElement;
+}): readonly React.ReactElement[] {
+  return [
+    applyDecorators({
+      decorators: options.decorators,
+      dispatcher: options.dispatcher,
+      element: options.host,
+    }),
+  ];
+}
+
+function decorateContent(options: {
+  readonly children: readonly React.ReactElement[];
+  readonly decorators: Decorators;
+  readonly dispatcher: ListenerDispatcher["Service"];
+  readonly token: LiveToken;
+}): readonly React.ReactElement[] {
+  if (options.children.length === 0) return [];
+  const element =
+    options.children.length === 1
+      ? onlyChild(options.children)
+      : createElement<HostProps>("div", {key: options.token.id}, options.children);
+  return [
+    applyDecorators({decorators: options.decorators, dispatcher: options.dispatcher, element}),
+  ];
+}
+
+function decorateChildren(options: {
+  readonly children: readonly React.ReactElement[];
+  readonly decorators: Decorators;
+  readonly dispatcher: ListenerDispatcher["Service"];
+  readonly host: React.ReactElement | undefined;
+  readonly token: LiveToken;
+}): readonly React.ReactElement[] {
+  return options.host === undefined
+    ? decorateContent(options)
+    : decorateHost({
+        decorators: options.decorators,
+        dispatcher: options.dispatcher,
+        host: options.host,
+      });
+}
 
 function projectToken(options: {
   readonly dispatcher: ListenerDispatcher["Service"];
@@ -244,45 +297,31 @@ function projectToken(options: {
   readonly path: ReadonlySet<number>;
   readonly token: LiveToken;
 }): readonly React.ReactElement[] {
-  if (options.path.has(options.token.id)) {
-    throw new ProjectionError({
-      cause: new Error("A cycle was found while projecting Cascade tokens"),
-      tokenId: options.token.id,
-    });
-  }
-  const path = new Set(options.path);
-  path.add(options.token.id);
+  const path = nextPath(options.path, options.token);
   const relations = options.token.tokens();
   const decorators = collectDecorators(relations, emptyDecorators);
-  const content = relations.filter(token => !isDecorator(token));
   const inheritedValue = options.token.hasValue() ? options.token.value() : options.inheritedValue;
-  const children = content.flatMap(token =>
-    projectToken({dispatcher: options.dispatcher, inheritedValue, path, token}),
-  );
+  const children = projectContent({
+    dispatcher: options.dispatcher,
+    inheritedValue,
+    path,
+    relations,
+  });
   const host = hostElement({
     children,
     inheritedValue: options.inheritedValue,
     token: options.token,
   });
-  if (host !== undefined) {
-    return [applyDecorators({decorators, dispatcher: options.dispatcher, element: host})];
-  }
-  if (children.length === 0) return [];
-  if (children.length === 1) {
-    const child = children[0];
-    return child === undefined
-      ? []
-      : [applyDecorators({decorators, dispatcher: options.dispatcher, element: child})];
-  }
-  return [
-    applyDecorators({
-      decorators,
-      dispatcher: options.dispatcher,
-      element: createElement<HostProps>("div", {key: options.token.id}, children),
-    }),
-  ];
+  return decorateChildren({
+    children,
+    decorators,
+    dispatcher: options.dispatcher,
+    host,
+    token: options.token,
+  });
 }
 
+/** [internal](internal) */
 export const project = Effect.fn("ReactProjection.project")(function* (options: {
   readonly roots: readonly LiveToken[];
 }): Effect.fn.Return<readonly React.ReactElement[], never, ListenerDispatcher> {

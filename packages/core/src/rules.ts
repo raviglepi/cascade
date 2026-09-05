@@ -1,5 +1,6 @@
 /** @since 0.1.0 */
 
+import type {Cause} from "effect";
 import type {CascadeEffect, WriteAddress, WritesOf, WriteSlot} from "./operation.ts";
 import type {
   DefinitionName,
@@ -14,7 +15,7 @@ import type {
 
 /** @since 0.1.0 */
 export interface RuleFailure {
-  readonly cause: unknown;
+  readonly cause: Cause.Cause<never>;
   readonly rule: string;
   readonly token: LiveToken;
 }
@@ -208,6 +209,28 @@ export class RuleBundle {
   }
 }
 
+function nestedRuleName(prefix: string, key: string): string {
+  return prefix.length === 0 ? key : `${prefix}.${key}`;
+}
+
+function flattenRule(options: {
+  readonly output: RuntimeRule[];
+  readonly prefix: string;
+  readonly value: unknown;
+  readonly key: string;
+}): void {
+  const name = nestedRuleName(options.prefix, options.key);
+  if (ruleDefinitions.has(Object(options.value))) {
+    // SAFETY: only Rule() adds values to the marker WeakSet.
+    const definition = options.value as RuleDefinition;
+    options.output.push({...definition, name});
+    return;
+  }
+  if (options.value !== Object(options.value)) return;
+  // SAFETY: the identity check excludes primitives before recursive traversal.
+  flattenRules({output: options.output, prefix: name, tree: options.value as object});
+}
+
 function flattenRules(options: {
   readonly output: RuntimeRule[];
   readonly prefix: string;
@@ -215,18 +238,12 @@ function flattenRules(options: {
 }): void {
   for (const key of Object.keys(options.tree)) {
     // SAFETY: Object.keys returned key from this exact tree object.
-    const value = options.tree[key as keyof typeof options.tree];
-    const name = options.prefix.length === 0 ? key : `${options.prefix}.${key}`;
-    if (ruleDefinitions.has(Object(value))) {
-      // SAFETY: only Rule() adds values to the marker WeakSet.
-      const definition = value as RuleDefinition;
-      options.output.push({...definition, name});
-      continue;
-    }
-    if (value === Object(value)) {
-      // SAFETY: the identity check excludes primitives before recursive traversal.
-      flattenRules({output: options.output, prefix: name, tree: value as object});
-    }
+    flattenRule({
+      key,
+      output: options.output,
+      prefix: options.prefix,
+      value: options.tree[key as keyof typeof options.tree],
+    });
   }
 }
 

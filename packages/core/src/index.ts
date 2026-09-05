@@ -10,7 +10,7 @@ export type {
   /** @since 0.1.0 */
   CascadeRuntime,
   /** @since 0.1.0 */
-  MountedRoots,
+  Mount,
 } from "./graph.ts";
 export type {
   /** @since 0.1.0 */

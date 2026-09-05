@@ -14,15 +14,8 @@ import type {
   ValueOf,
 } from "./token.ts";
 
-import * as Cause from "effect/Cause";
-import * as Context from "effect/Context";
-import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
-import * as Layer from "effect/Layer";
-import * as PubSub from "effect/PubSub";
-import * as Ref from "effect/Ref";
-import * as Stream from "effect/Stream";
-import * as SubscriptionRef from "effect/SubscriptionRef";
+import {Cause, Effect, Exit, Match, PubSub, Ref, Stream, SubscriptionRef} from "effect";
+
 import {OperationWritesId} from "./operation.ts";
 import {
   expandRoot,
@@ -53,6 +46,20 @@ interface LiveNode {
   valueState: {readonly kind: "absent"} | {readonly kind: "present"; readonly value: unknown};
 }
 
+/** [internal](internal) */
+function withoutStackTrace(cause: Cause.Cause<never>): Cause.Cause<never> {
+  return Cause.fromReasons(
+    cause.reasons.map(reason =>
+      Match.value(reason).pipe(
+        Match.when({_tag: "Die"}, reason => Cause.makeDieReason(reason.defect)),
+        Match.when({_tag: "Fail"}, reason => Cause.makeFailReason(reason.error)),
+        Match.when({_tag: "Interrupt"}, reason => Cause.makeInterruptReason(reason.fiberId)),
+        Match.exhaustive,
+      ),
+    ),
+  );
+}
+
 interface GraphState {
   readonly activeMatches: Map<RuntimeRule, Set<number>>;
   readonly changedDefinitions: Set<TokenDefinitionRef>;
@@ -79,16 +86,16 @@ type DrainCompletion =
  * **When to use**
  *
  * Keep this value for as long as a mounted graph branch should remain live.
- * Run {@link MountedRoots.release} when the caller no longer owns the branch.
+ * Run {@link Mount.release} when the caller no longer owns the branch.
  *
  * @since 0.1.0
  * @category Models
  */
-export interface MountedRoots {
+export interface Mount {
   readonly roots: readonly LiveToken[];
-  /** Shared revision which advances after each complete outer mutation. */
-  readonly revision: SubscriptionRef.SubscriptionRef<number>;
-  /** Releases this mount and recursively removes orphaned branches. */
+  /** Emits once immediately, then after each complete outer graph mutation. */
+  readonly changes: Stream.Stream<void>;
+  /** Releases this mount once and recursively removes orphaned branches. */
   readonly release: Effect.Effect<void>;
 }
 
@@ -97,7 +104,7 @@ export interface MountedRoots {
  *
  * **When to use**
  *
- * Allocate a runtime from {@link Cascade.gen}, mount token roots through it,
+ * Allocate a runtime from {@link Cascade.make}, mount token roots through it,
  * and consume {@link CascadeRuntime.ruleFailures} when an adapter needs to
  * report failed rule invocations.
  *
@@ -106,7 +113,7 @@ export interface MountedRoots {
  */
 export interface CascadeRuntime {
   /** Mounts token roots and returns their live handles. */
-  readonly mount: (...roots: readonly TokenRoot[]) => Effect.Effect<MountedRoots>;
+  readonly mount: (...roots: readonly TokenRoot[]) => Effect.Effect<Mount>;
   /** Broadcasts one event for every failed synchronous rule invocation. */
   readonly ruleFailures: Stream.Stream<RuleFailure>;
 }
@@ -127,12 +134,6 @@ interface RuntimeOperations extends CascadeRuntime {
   readonly set: (node: LiveNode, roots: readonly TokenRoot[]) => Effect.Effect<void>;
   readonly setValue: (node: LiveNode, value: TokenValue) => Effect.Effect<void>;
 }
-
-/** @internal */
-export class CascadeRuntimeService extends Context.Service<
-  CascadeRuntimeService,
-  RuntimeOperations
->()("@cascade/core/CascadeRuntime") {}
 
 function makeOperation<Writes extends WriteAddress>(options: {
   readonly effect: Effect.Effect<void>;
@@ -159,29 +160,19 @@ function definitionsConflict(left: TokenDefinitionRef, right: TokenDefinitionRef
   return left.excludedDefinitions.includes(right) || right.excludedDefinitions.includes(left);
 }
 
-class MountedRootsImpl implements MountedRoots {
+class MountImpl implements Mount {
+  readonly changes: Stream.Stream<void>;
   readonly release: Effect.Effect<void>;
   readonly roots: readonly LiveToken[];
-  readonly revision: SubscriptionRef.SubscriptionRef<number>;
-  readonly #nodes: readonly LiveNode[];
-  readonly #runtime: RuntimeOperations;
-  #released = false;
 
   constructor(options: {
-    readonly nodes: readonly LiveNode[];
-    readonly revision: SubscriptionRef.SubscriptionRef<number>;
+    readonly changes: Stream.Stream<void>;
+    readonly release: Effect.Effect<void>;
     readonly roots: readonly LiveToken[];
-    readonly runtime: RuntimeOperations;
   }) {
-    this.#nodes = options.nodes;
-    this.revision = options.revision;
+    this.changes = options.changes;
+    this.release = options.release;
     this.roots = options.roots;
-    this.#runtime = options.runtime;
-    this.release = Effect.suspend(() => {
-      if (this.#released) return Effect.void;
-      this.#released = true;
-      return this.#runtime.releaseRoots(this.#nodes);
-    });
   }
 }
 
@@ -300,24 +291,44 @@ class LiveTokenImpl<
   }
 }
 
+function indexRule(
+  rulesByDefinition: Map<TokenDefinitionRef, Set<RuntimeRule>>,
+  definition: TokenDefinitionRef,
+  rule: RuntimeRule,
+): void {
+  const indexed = rulesByDefinition.get(definition);
+  if (indexed === undefined) rulesByDefinition.set(definition, new Set([rule]));
+  else indexed.add(rule);
+}
+
+function isNegativeOnlyRule(
+  rule: RuntimeRule,
+  positives: ReadonlySet<TokenDefinitionRef>,
+): boolean {
+  return positives.size === 0 && getDetachedNegativeDefinitions(rule.condition).length > 0;
+}
+
+function indexRuntimeRule(
+  state: Pick<GraphState, "activeMatches" | "negativeRules" | "rulesByDefinition">,
+  rule: RuntimeRule,
+): void {
+  state.activeMatches.set(rule, new Set());
+  const positives = new Set<TokenDefinitionRef>();
+  collectPositiveDefinitions(rule.condition, positives);
+  indexRule(state.rulesByDefinition, rule.condition.definition, rule);
+  if (isNegativeOnlyRule(rule, positives)) {
+    state.negativeRules.add(rule);
+    return;
+  }
+  for (const definition of positives) indexRule(state.rulesByDefinition, definition, rule);
+}
+
 function initialState(rules: readonly RuntimeRule[]): GraphState {
   const activeMatches = new Map<RuntimeRule, Set<number>>();
   const negativeRules = new Set<RuntimeRule>();
   const rulesByDefinition = new Map<TokenDefinitionRef, Set<RuntimeRule>>();
-  const indexRule = (definition: TokenDefinitionRef, rule: RuntimeRule): void => {
-    const indexed = rulesByDefinition.get(definition);
-    if (indexed === undefined) rulesByDefinition.set(definition, new Set([rule]));
-    else indexed.add(rule);
-  };
-  for (const rule of rules) {
-    activeMatches.set(rule, new Set());
-    const positives = new Set<TokenDefinitionRef>();
-    collectPositiveDefinitions(rule.condition, positives);
-    indexRule(rule.condition.definition, rule);
-    if (positives.size === 0 && getDetachedNegativeDefinitions(rule.condition).length > 0)
-      negativeRules.add(rule);
-    else for (const definition of positives) indexRule(definition, rule);
-  }
+  const index = {activeMatches, negativeRules, rulesByDefinition};
+  for (const rule of rules) indexRuntimeRule(index, rule);
   return {
     activeMatches,
     changed: false,
@@ -334,20 +345,56 @@ function markChanged(state: GraphState, definition: TokenDefinitionRef): void {
   state.changedDefinitions.add(definition);
 }
 
+function matchesValue(node: LiveNode, pattern: TokenInstanceRef): boolean {
+  const patternValue = getDetachedValue(pattern);
+  if (patternValue.kind === "absent") return true;
+  if (node.valueState.kind === "absent") return false;
+  return Object.is(node.valueState.value, patternValue.value);
+}
+
+function hasExcludedNeighbour(node: LiveNode, definition: TokenDefinitionRef): boolean {
+  return [...node.outgoing.values(), ...node.incoming].some(
+    neighbour => neighbour.blueprint.definition === definition,
+  );
+}
+
+function matchesRelations(node: LiveNode, pattern: TokenInstanceRef): boolean {
+  const neighbours = [...node.outgoing.values(), ...node.incoming];
+  return (
+    !getDetachedNegativeDefinitions(pattern).some(negative =>
+      hasExcludedNeighbour(node, negative),
+    ) &&
+    getDetachedRelations(pattern).every(relation =>
+      neighbours.some(neighbour => matches(neighbour, relation)),
+    )
+  );
+}
+
 function matches(node: LiveNode, pattern: TokenInstanceRef): boolean {
   if (node.blueprint.definition !== pattern.definition) return false;
-  const patternValue = getDetachedValue(pattern);
-  if (
-    patternValue.kind === "present" &&
-    (node.valueState.kind === "absent" || !Object.is(node.valueState.value, patternValue.value))
-  )
-    return false;
-  const neighbours = [...node.outgoing.values(), ...node.incoming];
-  for (const negative of getDetachedNegativeDefinitions(pattern))
-    if (neighbours.some(neighbour => neighbour.blueprint.definition === negative)) return false;
-  for (const relation of getDetachedRelations(pattern))
-    if (!neighbours.some(neighbour => matches(neighbour, relation))) return false;
-  return true;
+  if (!matchesValue(node, pattern)) return false;
+  return matchesRelations(node, pattern);
+}
+
+function targetDefinition(target: TokenDefinitionRef | TokenInstanceRef): TokenDefinitionRef {
+  return isTokenDefinition(target) ? target : target.definition;
+}
+
+function matchesTarget(
+  candidate: LiveNode,
+  target: TokenDefinitionRef | TokenInstanceRef,
+): boolean {
+  if (isTokenDefinition(target)) return true;
+  return matches(candidate, target);
+}
+
+function relatedNodeMatches(
+  candidate: LiveNode,
+  target: TokenDefinitionRef | TokenInstanceRef,
+): boolean {
+  const definition = targetDefinition(target);
+  if (candidate.blueprint.definition !== definition) return false;
+  return matchesTarget(candidate, target);
 }
 
 function mountNode(state: GraphState, blueprint: TokenInstanceRef): LiveNode {
@@ -370,8 +417,12 @@ function mountNode(state: GraphState, blueprint: TokenInstanceRef): LiveNode {
   return node;
 }
 
+function isReferenced(node: LiveNode): boolean {
+  return node.rootReferences > 0 || node.incoming.size > 0;
+}
+
 function removeIfOrphaned(state: GraphState, node: LiveNode): void {
-  if (node.rootReferences > 0 || node.incoming.size > 0) return;
+  if (isReferenced(node)) return;
   state.nodes.delete(node.blueprint);
   markChanged(state, node.blueprint.definition);
   for (const target of node.outgoing.values()) {
@@ -395,31 +446,76 @@ function removeRelation(state: GraphState, owner: LiveNode, definition: TokenDef
   detach(state, owner, target);
 }
 
-function mergeRelation(state: GraphState, owner: LiveNode, blueprint: TokenInstanceRef): void {
-  markChanged(state, owner.blueprint.definition);
-  markChanged(state, blueprint.definition);
+function removeConflictingRelations(
+  state: GraphState,
+  owner: LiveNode,
+  blueprint: TokenInstanceRef,
+): void {
   for (const [definition] of owner.outgoing)
-    if (
-      definition !== blueprint.definition &&
-      definitionsConflict(definition, blueprint.definition)
-    )
+    if (isConflictingRelation(definition, blueprint.definition))
       removeRelation(state, owner, definition);
-  const existing = owner.outgoing.get(blueprint.definition);
-  if (existing?.blueprint === blueprint) return;
+}
+
+function isConflictingRelation(left: TokenDefinitionRef, right: TokenDefinitionRef): boolean {
+  return left !== right && definitionsConflict(left, right);
+}
+
+function hasBlueprint(existing: LiveNode | undefined, blueprint: TokenInstanceRef): boolean {
+  return existing !== undefined && existing.blueprint === blueprint;
+}
+
+function detachExisting(state: GraphState, owner: LiveNode, existing: LiveNode | undefined): void {
   if (existing !== undefined) detach(state, owner, existing);
+}
+
+function attachRelation(state: GraphState, owner: LiveNode, blueprint: TokenInstanceRef): void {
+  const existing = owner.outgoing.get(blueprint.definition);
+  if (hasBlueprint(existing, blueprint)) return;
+  detachExisting(state, owner, existing);
   const target = mountNode(state, blueprint);
   owner.outgoing.set(blueprint.definition, target);
   target.incoming.add(owner);
 }
 
+function mergeRelation(state: GraphState, owner: LiveNode, blueprint: TokenInstanceRef): void {
+  markChanged(state, owner.blueprint.definition);
+  markChanged(state, blueprint.definition);
+  removeConflictingRelations(state, owner, blueprint);
+  attachRelation(state, owner, blueprint);
+}
+
+function addIndexedRules(
+  candidates: Set<RuntimeRule>,
+  indexed: ReadonlySet<RuntimeRule> | undefined,
+): void {
+  if (indexed === undefined) return;
+  for (const rule of indexed) candidates.add(rule);
+}
+
 function takeCandidateRules(state: GraphState): ReadonlySet<RuntimeRule> {
   const candidates = new Set(state.negativeRules);
-  for (const definition of state.changedDefinitions) {
-    const indexed = state.rulesByDefinition.get(definition);
-    if (indexed !== undefined) for (const rule of indexed) candidates.add(rule);
-  }
+  for (const definition of state.changedDefinitions)
+    addIndexedRules(candidates, state.rulesByDefinition.get(definition));
   state.changedDefinitions.clear();
   return candidates;
+}
+
+function matchingNodeIds(state: GraphState, condition: TokenInstanceRef): Set<number> {
+  const matchedIds = new Set<number>();
+  for (const node of state.nodes.values())
+    if (matches(node, condition)) matchedIds.add(node.blueprint.id);
+  return matchedIds;
+}
+
+function entriesForNewMatches(
+  state: GraphState,
+  current: ReadonlySet<number>,
+  previous: ReadonlySet<number>,
+  rule: RuntimeRule,
+): readonly RuleEntry[] {
+  return [...state.nodes.values()]
+    .filter(node => current.has(node.blueprint.id) && !previous.has(node.blueprint.id))
+    .map(node => ({node, rule}));
 }
 
 function findRuleEntries(
@@ -429,60 +525,65 @@ function findRuleEntries(
   const entries: RuleEntry[] = [];
   for (const [rule, previous] of state.activeMatches) {
     if (!candidates.has(rule)) continue;
-    const current = new Set<number>();
-    for (const node of state.nodes.values()) {
-      if (!matches(node, rule.condition)) continue;
-      current.add(node.blueprint.id);
-      if (!previous.has(node.blueprint.id)) entries.push({node, rule});
-    }
+    const current = matchingNodeIds(state, rule.condition);
+    entries.push(...entriesForNewMatches(state, current, previous, rule));
     state.activeMatches.set(rule, current);
   }
   return entries;
 }
 
-const makeRuntime = Effect.fn("CascadeRuntime.make")(function* (rules: readonly RuntimeRule[]) {
+/**
+ * [internal](internal)
+ *
+ * @since 0.1.0
+ */
+export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly RuntimeRule[]) {
   const initial = initialState(rules);
   const state = yield* Ref.make(initial);
-  const failurePubSub = yield* PubSub.unbounded<RuleFailure>();
   const revision = yield* SubscriptionRef.make(0);
+  const failurePubSub = yield* PubSub.unbounded<RuleFailure>();
   let runtime: RuntimeOperations;
 
-  const runRule = Effect.fn("CascadeRuntime.runRule")(function* (entry: RuleEntry) {
+  // Capture a rule's exit without adding engine stack frames to the domain failure.
+  const captureRuleExit = Effect.fnUntraced(function* (entry: RuleEntry) {
     const token = runtime.handle(entry.node, entry.node.blueprint.definition.name, [] as const);
     const exit = yield* Effect.exit(Effect.gen(() => entry.rule.handler(token)));
-    if (Exit.isFailure(exit))
-      yield* PubSub.publish(failurePubSub, {
-        cause: Cause.squash(exit.cause),
-        rule: entry.rule.name,
-        token,
-      });
+    return {exit, token};
   });
+  const runRule = (entry: RuleEntry): Effect.Effect<void> =>
+    Effect.gen(function* () {
+      const {exit, token} = yield* captureRuleExit(entry);
+      if (Exit.isFailure(exit))
+        yield* PubSub.publish(failurePubSub, {
+          cause: withoutStackTrace(exit.cause),
+          rule: entry.rule.name,
+          token,
+        });
+    });
 
-  const drainRules = Effect.fn("CascadeRuntime.drainRules")(function* () {
-    while (true) {
-      const entries = yield* Ref.modify(state, current => {
-        if (!current.pendingRuleScan) return [undefined, current] as const;
-        current.pendingRuleScan = false;
-        return [findRuleEntries(current, takeCandidateRules(current)), current] as const;
-      });
-      if (entries !== undefined) {
-        yield* Effect.forEach(entries, runRule, {concurrency: 1, discard: true});
-        continue;
-      }
-      const completion = yield* Ref.modify(
-        state,
-        (current): readonly [DrainCompletion, GraphState] => {
-          if (current.pendingRuleScan) return [{kind: "continue"}, current];
-          const changed = current.changed;
-          current.changed = false;
-          current.draining = false;
-          return [{changed, kind: "complete"}, current];
-        },
-      );
-      if (completion.kind === "continue") continue;
-      if (completion.changed) yield* SubscriptionRef.update(revision, current => current + 1);
-      return;
-    }
+  const takePendingEntries = Ref.modify(state, current => {
+    if (!current.pendingRuleScan) return [undefined, current] as const;
+    current.pendingRuleScan = false;
+    return [findRuleEntries(current, takeCandidateRules(current)), current] as const;
+  });
+  const completeDrain = Ref.modify(state, (current): readonly [DrainCompletion, GraphState] => {
+    if (current.pendingRuleScan) return [{kind: "continue"}, current];
+    const changed = current.changed;
+    current.changed = false;
+    current.draining = false;
+    return [{changed, kind: "complete"}, current];
+  });
+  let drainRules: () => Effect.Effect<void>;
+  const finishDrain = Effect.fn("CascadeRuntime.finishDrain")(function* () {
+    const completion = yield* completeDrain;
+    if (completion.kind === "continue") return yield* drainRules();
+    if (completion.changed) yield* SubscriptionRef.update(revision, value => value + 1);
+  });
+  drainRules = Effect.fn("CascadeRuntime.drainRules")(function* () {
+    const entries = yield* takePendingEntries;
+    if (entries === undefined) return yield* finishDrain();
+    yield* Effect.forEach(entries, runRule, {concurrency: 1, discard: true});
+    return yield* drainRules();
   });
 
   const change = Effect.fn("CascadeRuntime.change")(function* (
@@ -523,19 +624,10 @@ const makeRuntime = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
   const findRelated = (
     node: LiveNode,
     target: TokenDefinitionRef | TokenInstanceRef,
-  ): LiveNode | undefined => {
-    const definition = isTokenDefinition(target) ? target : target.definition;
-    const direct = node.outgoing.get(definition);
-    if (direct !== undefined && (isTokenDefinition(target) || matches(direct, target)))
-      return direct;
-    for (const incoming of node.incoming)
-      if (
-        incoming.blueprint.definition === definition &&
-        (isTokenDefinition(target) || matches(incoming, target))
-      )
-        return incoming;
-    return undefined;
-  };
+  ): LiveNode | undefined =>
+    [...node.outgoing.values(), ...node.incoming].find(candidate =>
+      relatedNodeMatches(candidate, target),
+    );
   const releaseRoots = Effect.fn("CascadeRuntime.releaseRoots")(function* (
     nodes: readonly LiveNode[],
   ) {
@@ -575,11 +667,11 @@ const makeRuntime = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
       return [[nodes, claim] as const, current] as const;
     });
     if (shouldDrain) yield* drainRules();
-    return new MountedRootsImpl({
-      nodes: mounted,
-      revision,
+    const release = yield* Effect.cached(releaseRoots(mounted));
+    return new MountImpl({
+      changes: SubscriptionRef.changes(revision).pipe(Stream.map(() => undefined)),
+      release,
       roots: mounted.map(node => handle(node, node.blueprint.definition.name, [] as const)),
-      runtime,
     });
   });
 
@@ -594,9 +686,5 @@ const makeRuntime = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
     set,
     setValue,
   };
-  return CascadeRuntimeService.of(runtime);
+  return runtime;
 });
-
-/** @internal */
-export const layer = (rules: readonly RuntimeRule[]) =>
-  Layer.effect(CascadeRuntimeService, makeRuntime(rules));

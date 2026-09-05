@@ -1,22 +1,12 @@
 import type {DOMAttributes} from "react";
 import {describe, expect, it} from "vitest";
 
-import * as Effect from "effect/Effect";
+import {Effect} from "effect";
+
 import {isValidElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Cascade, Token} from "cascade";
-import {
-  Column,
-  Color,
-  Element,
-  Enum,
-  Event,
-  Listener,
-  Row,
-  Style,
-  Text,
-  createReactRenderer,
-} from "../src/index.ts";
+import {Column, Element, Event, Row, Style, Text, createReactRenderer} from "../src/index.ts";
 import {ListenerDispatcher, project} from "../src/projection.tsx";
 
 describe("React projection", () => {
@@ -30,7 +20,7 @@ describe("React projection", () => {
           yield* item.pipe(Token.add(Touched()));
           throw new Error("initial rule failure");
         })
-        .gen(),
+        .make(),
     );
     const renderer = createReactRenderer({
       reportError: report => {
@@ -44,18 +34,12 @@ describe("React projection", () => {
     expect(reportedRules).toEqual(["Item.1"]);
   });
 
-  it("groups multiple hosts before applying a semantic decorator", () => {
+  it("groups multiple hosts before applying native CSS decorators", () => {
     const Card = Token("Card")();
-    const runtime = Effect.runSync(new Cascade().gen());
+    const runtime = Effect.runSync(new Cascade().make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
-      renderer.render(
-        Card(
-          Style.Color(Color.Css({value: "navy"})),
-          Row(Text("Primary")),
-          Column(Text("Secondary")),
-        ),
-      ),
+      renderer.render(Card(Style.Color("navy"), Row(Text("Primary")), Column(Text("Secondary")))),
     );
 
     expect(html).toContain('<div style="color:navy"><div style="display:flex');
@@ -64,15 +48,11 @@ describe("React projection", () => {
 
   it("projects generated CSS decorators through their metadata", () => {
     const Card = Token("Card")();
-    const runtime = Effect.runSync(new Cascade().gen());
+    const runtime = Effect.runSync(new Cascade().make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
       renderer.render(
-        Card(
-          Style.FlexWrap(Enum("wrap")),
-          Style.JustifyContent("space-between"),
-          Row(Text("Primary")),
-        ),
+        Card(Style.FlexWrap("wrap"), Style.JustifyContent("space-between"), Row(Text("Primary"))),
       ),
     );
 
@@ -81,10 +61,13 @@ describe("React projection", () => {
   });
 
   it("projects generated event decorators and skips absent listeners", () => {
-    const runtime = Effect.runSync(new Cascade().gen());
+    const runtime = Effect.runSync(new Cascade().make());
     const mounted = Effect.runSync(
       runtime.mount(
-        Element.Button(Event.OnClick(Listener(() => undefined)), Text("Handled")),
+        Element.Button(
+          Event.OnClick(() => Effect.void),
+          Text("Handled"),
+        ),
         Element.Button(Text("Absent")),
       ),
     );

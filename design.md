@@ -76,7 +76,7 @@ Using `GhostButton` is exactly equivalent to using `Button(Ghost())`. It creates
 
 ## Live graph and mutation
 
-Detached token instances carry token metadata and may serve as construction data, rule patterns, or render input. A Cascade instance owns mounted graph state and observations.
+Detached token instances carry token metadata and may serve as construction data, rule patterns, or render input. `Cascade.make()` allocates independent mounted graph state and observations.
 
 The mutation API is Effectful and has both instance methods and pipeable `Token` helpers:
 
@@ -100,7 +100,9 @@ Every public mutation is evaluated as one before-and-after state change. Rules n
 
 ## Ownership and cleanup
 
-Mounted branches are retained by a root relation. A root token is related to each root supplied to `Cascade.render(...)`. A token remains live while an incoming direct relation points to it. If a relation removal leaves a token with no direct relation, Cascade deletes it; that can recursively orphan and remove its descendants.
+`runtime.mount(...)` returns a `Mount` with live `roots`, a `changes` stream, and `release`. The changes stream emits once when a consumer subscribes, then after each complete outer graph mutation. Calling `release` more than once releases the mount only once.
+
+Mounted branches are retained by root references. A token remains live while a root or incoming direct relation points to it. If a relation removal leaves a token with no direct relation, Cascade deletes it; that can recursively orphan and remove its descendants.
 
 For example, removing `User -> Name` removes `Name -> Text` when `Name` has no other incoming direct relation.
 
@@ -115,10 +117,10 @@ const cascade = new Cascade()
     yield* button.get(Opacity()).pipe(Token.setValue(0.5));
   });
 
-const runtime = yield * cascade.gen();
+const runtime = yield * cascade.make();
 ```
 
-`.rule(condition, generator)` stores the generator. Chaining `.rule(...)` accumulates typed rule metadata. `.gen()` builds the executable Effect and starts the rule engine when the caller chooses.
+`.rule(condition, generator)` stores the generator. Chaining `.rule(...)` accumulates typed rule metadata. `.make()` builds the executable Effect and starts the rule engine when the caller chooses.
 
 The rule handler receives the outer matched token. Related tokens are accessed explicitly with `.get(TokenDefinitionOrPattern)`. This avoids dynamic property proxies.
 
@@ -130,7 +132,7 @@ Conditions are token-instance metadata used structurally:
 - A condition with only `Not(...)` terms is valid but may require a full graph scan.
 - Mutation has already normalized exclusions, so query evaluation assumes valid state rather than rechecking `Not(...)`.
 
-Rules run when a token enters a condition. Existing matches enter once when `.gen()` starts. A rule does not rerun merely because unrelated state changes while its condition remains true.
+Rules run when a token enters a condition. Existing matches enter once when `.make()` starts. A rule does not rerun merely because unrelated state changes while its condition remains true.
 
 Cascade indexes positive token definitions in conditions. A mutation finds candidate rules through the definitions it changed, then evaluates each full condition. Purely negative conditions are allowed and scan the graph.
 
@@ -197,7 +199,7 @@ An adapter provides framework-native error UI and reporting. React render failur
 
 ## React integration
 
-The application owns the Cascade instance and chooses its engine lifetime. A typical UI application constructs the instance and rules near its top level, calls `.gen()`, then uses its renderer in selected React components.
+The application owns the Cascade instance and chooses its engine lifetime. A typical UI application constructs the instance and rules near its top level, calls `.make()`, then uses its renderer in selected React components.
 
 ```tsx
 function Sidebar() {
