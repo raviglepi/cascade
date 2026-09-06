@@ -2,23 +2,23 @@ import type {ReactElement, ReactNode} from "react";
 import type {CascadeRuntime, TokenRoot} from "cascade";
 import type {ErrorReporter} from "./errors.tsx";
 
-import {Effect, Layer, Stream} from "effect";
-
 import {RegistryProvider, useAtomSuspense} from "@effect/atom-react";
+import {Effect, Fiber, Layer, Scope, Stream} from "effect";
 import {Atom} from "effect/unstable/reactivity";
-import {createElement, useMemo} from "react";
+
+import {createElement, memo, useMemo} from "react";
 import {isTokenInstance} from "cascade";
 import {CascadeErrorBoundary} from "./errors.tsx";
 import {ListenerDispatcher, project} from "./projection.tsx";
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export interface ReactRendererOptions {
   readonly fallback?: ReactNode;
   readonly reportError: ErrorReporter;
   readonly runtime: CascadeRuntime;
 }
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export interface ReactRenderer {
   render(...roots: readonly TokenRoot[]): ReactElement;
 }
@@ -29,12 +29,16 @@ interface ProjectionProps {
   readonly runtime: CascadeRuntime;
 }
 
-/** [internal](internal) */
-function makeListenerDispatcher(reportError: ErrorReporter): ListenerDispatcher["Service"] {
+/** @internal */
+export function makeListenerDispatcher(
+  reportError: ErrorReporter,
+  scope: Scope.Scope,
+): ListenerDispatcher["Service"] {
   let service: ListenerDispatcher["Service"];
   service = ListenerDispatcher.of({
     dispatch: effect => {
-      Effect.runFork(Effect.provideService(effect, ListenerDispatcher, service));
+      const fiber = Effect.runFork(Effect.provideService(effect, ListenerDispatcher, service));
+      Effect.runFork(Scope.addFinalizer(scope, Fiber.interrupt(fiber)));
     },
     report: ({cause, tokenId}) =>
       Effect.sync(() => reportError({cause, kind: "listener", tokenId})),
@@ -43,10 +47,13 @@ function makeListenerDispatcher(reportError: ErrorReporter): ListenerDispatcher[
 }
 
 function makeListenerDispatcherLayer(reportError: ErrorReporter) {
-  return Layer.succeed(ListenerDispatcher, makeListenerDispatcher(reportError));
+  return Layer.effect(
+    ListenerDispatcher,
+    Effect.map(Scope.Scope, scope => makeListenerDispatcher(reportError, scope)),
+  );
 }
 
-/** [internal](internal) */
+/** @internal */
 function makeProjectionStream({reportError, roots, runtime}: ProjectionProps) {
   return Stream.scoped(
     Stream.unwrap(
@@ -74,7 +81,7 @@ function makeProjectionStream({reportError, roots, runtime}: ProjectionProps) {
   );
 }
 
-/** [internal](internal) */
+/** @internal */
 function makeProjectionAtom(props: ProjectionProps) {
   return Atom.make(
     makeProjectionStream(props).pipe(
@@ -83,7 +90,7 @@ function makeProjectionAtom(props: ProjectionProps) {
   );
 }
 
-/** [internal](internal) */
+/** @internal */
 function projectServer({reportError, roots, runtime}: ProjectionProps): readonly ReactElement[] {
   return Effect.runSync(
     Effect.scoped(
@@ -105,30 +112,47 @@ function projectServer({reportError, roots, runtime}: ProjectionProps): readonly
           runtime.mount(...roots),
           mounted => mounted.release,
         );
-        return yield* project({roots: mounted.roots});
-      }).pipe(Effect.provideService(ListenerDispatcher, makeListenerDispatcher(reportError))),
+        const scope = yield* Scope.Scope;
+        return yield* project({roots: mounted.roots}).pipe(
+          Effect.provideService(ListenerDispatcher, makeListenerDispatcher(reportError, scope)),
+        );
+      }),
     ),
   );
 }
 
-function ClientProjection(props: ProjectionProps): readonly ReactElement[] {
+const ClientProjection = memo(function ClientProjection(
+  props: ProjectionProps,
+): readonly ReactElement[] {
   const {reportError, roots, runtime} = props;
   const atom = useMemo(
     () => makeProjectionAtom({reportError, roots, runtime}),
     [reportError, roots, runtime],
   );
   return useAtomSuspense(atom, {suspendOnWaiting: true}).value;
-}
-
-function Projection(props: ProjectionProps): readonly ReactElement[] {
-  return typeof document === "undefined" ? projectServer(props) : ClientProjection(props);
-}
+}, sameProjection);
 
 function rootId(root: TokenRoot): number {
   return isTokenInstance(root) ? root.id : root.instance.id;
 }
 
-/** [since](since) 0.1.0 */
+function sameProjection(left: ProjectionProps, right: ProjectionProps): boolean {
+  if (left.reportError !== right.reportError || left.runtime !== right.runtime) return false;
+  return sameRoots(left.roots, right.roots);
+}
+
+function sameRoots(left: readonly TokenRoot[], right: readonly TokenRoot[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((root, index) => rootId(root) === rootId(right[index]!));
+}
+
+function Projection(props: ProjectionProps): ReactElement | readonly ReactElement[] {
+  return typeof document === "undefined"
+    ? projectServer(props)
+    : createElement(ClientProjection, {...props, key: props.roots.map(rootId).join(":")});
+}
+
+/** @since 0.1.0 */
 export function createReactRenderer(options: ReactRendererOptions): ReactRenderer {
   const fallback =
     options.fallback ?? createElement("div", {role: "alert"}, "Unable to render this content.");

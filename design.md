@@ -189,7 +189,7 @@ const cascade = new Cascade()
 
 Rule bundles are named nested objects. `extend()` flattens them. A package exposes `.without(...)` and `.with(...)` so applications explicitly choose adapter defaults rather than silently overriding conflicts.
 
-`@cascade/react` supplies render primitives such as `Row`, `Column`, `Text`, `Image`, `ButtonElement`, basic style tokens, and basic listener tokens. Domain tokens become renderable by declaring relations to adapter element tokens. A token such as `Ghost` influences presentation but need not map to an element.
+`@cascade/react` supplies `Row`, `Column`, `Text`, `Image`, generated `Element` tokens such as `Element.Button`, generated `Style` tokens, and generated `Event` tokens. `Color` and `Size` are semantic values for color and dimensional styles; native CSS literal unions remain native values. Domain tokens become renderable by declaring relations to adapter element tokens. A token such as `Ghost` influences presentation but need not map to an element.
 
 Adapters render every relation they can project. Direct insertion order is the default layout order. Rules can replace a token's full direct relation set through `set(...)`, allowing a matched state to choose a different order.
 
@@ -199,17 +199,20 @@ An adapter provides framework-native error UI and reporting. React render failur
 
 ## React integration
 
-The application owns the Cascade instance and chooses its engine lifetime. A typical UI application constructs the instance and rules near its top level, calls `.make()`, then uses its renderer in selected React components.
+The application owns the configured Cascade value and chooses its runtime lifetime. A typical UI application constructs its rules near its top level, calls `.make()`, and gives the resulting runtime to a React renderer.
 
 ```tsx
+const runtime = yield * cascade.make();
+const renderer = createReactRenderer({reportError, runtime});
+
 function Sidebar() {
-  return <aside>{Cascade.render(ContactRows(/* tokens */))}</aside>;
+  return <aside>{renderer.render(ContactRows(/* tokens */))}</aside>;
 }
 ```
 
-`Cascade.render(...)` accepts ordered root tokens and returns JSX from the React adapter. It can appear anywhere in an existing React app. Cascade does not require the entire app to be modeled as Cascade tokens.
+`renderer.render(...)` accepts ordered root tokens and returns JSX. It can appear anywhere in an existing React app. Cascade does not require the entire app to be modeled as Cascade tokens.
 
-React-boundary rerendering is application-controlled. Giving `Cascade.render(...)` new token instances rerenders that boundary. Applications can keep the boundary stable, memoize it, or let tokens read external state when they want narrower updates. The adapter should memoize its own projected elements where practical, but Cascade 0.1 does not guarantee automatic reconciliation of newly supplied token branches.
+React-boundary rerendering is application-controlled. Giving `renderer.render(...)` new token instances rerenders that boundary. Applications can keep the boundary stable, memoize it, or let tokens read external state when they want narrower updates. The adapter should memoize its own projected elements where practical, but Cascade 0.1 does not guarantee automatic reconciliation of newly supplied token branches.
 
 ## First proof of the design
 

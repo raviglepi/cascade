@@ -6,7 +6,17 @@ import {Effect} from "effect";
 import {isValidElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Cascade, Token} from "cascade";
-import {Column, Element, Event, Row, Style, Text, createReactRenderer} from "../src/index.ts";
+import {
+  Color,
+  Column,
+  Element,
+  Event,
+  Row,
+  Size,
+  Style,
+  Text,
+  createReactRenderer,
+} from "../src/index.ts";
 import {ListenerDispatcher, project} from "../src/projection.tsx";
 
 describe("React projection", () => {
@@ -39,10 +49,18 @@ describe("React projection", () => {
     const runtime = Effect.runSync(new Cascade().make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
-      renderer.render(Card(Style.Color("navy"), Row(Text("Primary")), Column(Text("Secondary")))),
+      renderer.render(
+        Card(
+          Style.Color(Color.Css({value: "navy"})),
+          Style.Padding(Size.Rem(1)),
+          Row(Text("Primary")),
+          Column(Text("Secondary")),
+        ),
+      ),
     );
 
-    expect(html).toContain('<div style="color:navy"><div style="display:flex');
+    expect(html).toContain("color:navy");
+    expect(html).toContain("padding:1rem");
     expect(html.match(/color:navy/g)).toHaveLength(1);
   });
 

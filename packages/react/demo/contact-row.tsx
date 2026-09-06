@@ -4,7 +4,7 @@ import type {ImageSource} from "../src/index.ts";
 import {Effect} from "effect";
 
 import {Rule, Rules, Token} from "cascade";
-import {Column, Element, Event, Image, Row, Style, Text} from "../src/index.ts";
+import {Column, Element, Event, Image, Row, Size, Style, Text} from "../src/index.ts";
 
 export interface ContactRowInput {
   readonly compact?: boolean;
@@ -40,10 +40,12 @@ export function createContactRow(input: ContactRowInput): TokenInstanceRef {
     Element.Button(
       Row(
         Avatar(input.image),
-        ContactDetails(Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(2))),
+        ContactDetails(
+          Column(ContactName(input.name), ChatPreview(input.preview), Style.Gap(Size.Px(2))),
+        ),
         LastSeen(input.time),
-        Style.Gap(12),
-        Style.Padding(10),
+        Style.Gap(Size.Px(12)),
+        Style.Padding(Size.Px(10)),
       ),
     ),
   );

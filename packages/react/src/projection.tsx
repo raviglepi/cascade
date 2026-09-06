@@ -6,8 +6,9 @@ import {Context, Effect, Predicate, Schema} from "effect";
 import {cloneElement, createElement} from "react";
 import {ProjectionError} from "./errors.tsx";
 import {Column, Image, Row, Text, getDecoratorMetadata, getElementMetadata} from "./primitives.ts";
+import {StyleValueSchema, toCssValue} from "./semantic-values.ts";
 
-type EventHandler = (event: React.SyntheticEvent<HTMLElement>) => Effect.Effect<void, unknown>;
+type EventHandler = (event: React.SyntheticEvent<HTMLElement>) => Effect.Effect<void>;
 type Handler = {readonly tokenId: number; readonly value: EventHandler};
 interface Decorators {
   readonly events: ReadonlyMap<string, readonly Handler[]>;
@@ -19,7 +20,7 @@ type HostProps = React.HTMLAttributes<HTMLElement> & {
   readonly type?: string;
 } & React.Attributes;
 
-/** [internal](internal) */
+/** @internal */
 export class ListenerDispatcher extends Context.Service<
   ListenerDispatcher,
   {
@@ -72,6 +73,17 @@ function appendListener(options: {
   options.events.set(options.property, [...listeners, requiredHandler(options)]);
 }
 
+function styleValue(options: {
+  readonly token: LiveToken;
+  readonly value: TokenValue;
+}): string | number {
+  if (Schema.is(StyleValueSchema)(options.value)) return toCssValue(options.value);
+  throw new ProjectionError({
+    cause: new Error(`${options.token.definition.name} requires a CSS-compatible style value`),
+    tokenId: options.token.id,
+  });
+}
+
 function collectDecorator(options: {
   readonly events: Map<string, readonly Handler[]>;
   readonly style: React.CSSProperties;
@@ -81,7 +93,7 @@ function collectDecorator(options: {
   if (metadata === undefined) return;
   const value = reads(options.token, metadata.definition);
   if (metadata.kind === "style") {
-    Object.assign(options.style, {[metadata.property]: value});
+    Object.assign(options.style, {[metadata.property]: styleValue({token: options.token, value})});
     return;
   }
   appendListener({
@@ -113,11 +125,9 @@ function makeListener(options: {
       Effect.forEach(
         options.listeners,
         item =>
-          item
-            .value(event)
-            .pipe(
-              Effect.catchCause(cause => options.dispatcher.report({cause, tokenId: item.tokenId})),
-            ),
+          Effect.suspend(() => item.value(event)).pipe(
+            Effect.catchCause(cause => options.dispatcher.report({cause, tokenId: item.tokenId})),
+          ),
         {discard: true},
       ),
     );
@@ -321,7 +331,7 @@ function projectToken(options: {
   });
 }
 
-/** [internal](internal) */
+/** @internal */
 export const project = Effect.fn("ReactProjection.project")(function* (options: {
   readonly roots: readonly LiveToken[];
 }): Effect.fn.Return<readonly React.ReactElement[], never, ListenerDispatcher> {

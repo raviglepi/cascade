@@ -1,8 +1,4 @@
-/**
- * [since](since) 0.1.0
- *
- * @since 0.1.0
- */
+/** @since 0.1.0 */
 
 export {
   /** @since 0.1.0 */
@@ -32,6 +28,18 @@ export {
   /** @since 0.1.0 */
   Text,
 } from "./primitives.ts";
+export {
+  /** @since 0.2.0 */
+  Color,
+  /** @since 0.2.0 */
+  ColorConversionError,
+  /** @since 0.2.0 */
+  ColorSchema,
+  /** @since 0.2.0 */
+  Size,
+  /** @since 0.2.0 */
+  SizeSchema,
+} from "./semantic-values.ts";
 export type {
   /** @since 0.1.0 */
   ElementFamily,

@@ -3,14 +3,14 @@ import type {RuleFailure} from "cascade";
 
 import {Component} from "react";
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export type CascadeReactReport =
   | {readonly cause: unknown; readonly kind: "listener"; readonly tokenId: number}
   | {readonly cause: unknown; readonly kind: "projection"; readonly tokenId?: number}
   | {readonly cause: unknown; readonly componentStack: string; readonly kind: "render"}
   | {readonly failure: RuleFailure; readonly kind: "rule"};
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export type ErrorReporter = (report: CascadeReactReport) => void;
 
 interface ErrorBoundaryProps {
@@ -25,7 +25,7 @@ interface ErrorBoundaryState {
   readonly resetKey: string;
 }
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export class ProjectionError {
   readonly cause: unknown;
   readonly message = "Cascade could not project this token graph";
@@ -48,7 +48,7 @@ function reportProjectionError(options: {
   options.reportError(report);
 }
 
-/** [since](since) 0.1.0 */
+/** @since 0.1.0 */
 export class CascadeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   override state: ErrorBoundaryState = {cause: undefined, resetKey: this.props.resetKey};
 

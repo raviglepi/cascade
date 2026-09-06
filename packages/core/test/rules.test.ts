@@ -59,6 +59,30 @@ describe("rule engine", () => {
     }),
   );
 
+  it.effect("does not run a queued rule after an earlier rule invalidates its condition", () =>
+    Effect.gen(function* () {
+      const Active = Token("Active")();
+      const Color = Token("Color")<string>();
+      const Item = Token("Item")();
+      let staleRuns = 0;
+      const runtime = yield* new Cascade()
+        .rule(Item(Active()), function* (item) {
+          yield* item.pipe(Token.del(Active()));
+        })
+        .rule(Item(Active()), function* (item) {
+          staleRuns += 1;
+          yield* item.get(Color()).pipe(Token.setValue("green"));
+        })
+        .make();
+
+      const mounted = yield* runtime.mount(Item(Active(), Color("red")));
+
+      expect(staleRuns).toBe(0);
+      expect(mounted.roots[0]!.get(Color).value()).toBe("red");
+      yield* mounted.release;
+    }),
+  );
+
   it.effect("reports a failed rule and continues later entries", () =>
     Effect.scoped(
       Effect.gen(function* () {

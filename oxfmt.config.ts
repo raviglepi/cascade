@@ -1,4 +1,4 @@
-import {defineConfig} from "oxfmt";
+import {defineConfig, type CustomGroupItemConfig} from "oxfmt";
 
 export default defineConfig({
   arrowParens: "avoid",
@@ -21,39 +21,35 @@ export default defineConfig({
       {groupName: "test", elementNamePattern: ["vitest"]},
       {groupName: "test-effect", elementNamePattern: ["@effect/vitest"]},
 
-      {
-        groupName: "value-effect-libs-wildcard",
-        elementNamePattern: ["effect"],
-        modifiers: ["value", "wildcard"],
-      },
-      {
-        groupName: "value-effect-libs-external-wildcard",
-        elementNamePattern: ["effect-**", "**@effect", "**/effect"],
-        modifiers: ["value", "wildcard"],
-      },
-      {groupName: "value-effect-libs", elementNamePattern: ["effect"], modifiers: ["value"]},
-      {
-        groupName: "value-effect-libs-external",
-        elementNamePattern: ["effect-**", "**@effect", "**/effect"],
-        modifiers: ["value"],
-      },
+      ...((elementNamePattern): CustomGroupItemConfig[] => [
+        {
+          groupName: "value-effect-libs-wildcard",
+          elementNamePattern,
+          modifiers: ["value", "wildcard"],
+        },
+        {groupName: "value-effect-libs", elementNamePattern, modifiers: ["value"]},
+        {
+          groupName: "type-effect-libs-wildcard",
+          elementNamePattern,
+          modifiers: ["type", "wildcard"],
+        },
+        {groupName: "type-effect-libs", elementNamePattern, modifiers: ["type"]},
+      ])(["effect", "effect/**", "@effect/**"]),
+      ...((elementNamePattern): CustomGroupItemConfig[] => [
+        {
+          groupName: "value-effect-libs-external-wildcard",
+          elementNamePattern,
+          modifiers: ["value", "wildcard"],
+        },
+        {groupName: "value-effect-libs-external", elementNamePattern, modifiers: ["value"]},
 
-      {
-        groupName: "type-effect-libs-wildcard",
-        elementNamePattern: ["effect"],
-        modifiers: ["type", "wildcard"],
-      },
-      {
-        groupName: "type-effect-libs-external-wildcard",
-        elementNamePattern: ["effect-**", "**@effect", "**/effect"],
-        modifiers: ["type", "wildcard"],
-      },
-      {groupName: "type-effect-libs", elementNamePattern: ["effect"], modifiers: ["type"]},
-      {
-        groupName: "type-effect-libs-external",
-        elementNamePattern: ["effect-**", "**@effect", "**/effect"],
-        modifiers: ["type"],
-      },
+        {
+          groupName: "type-effect-libs-external-wildcard",
+          elementNamePattern,
+          modifiers: ["type", "wildcard"],
+        },
+        {groupName: "type-effect-libs-external", elementNamePattern, modifiers: ["type"]},
+      ])(["effect-**", "**@effect", "**/effect"]),
     ],
     groups: [
       "type-external",

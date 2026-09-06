@@ -1,10 +1,13 @@
 /** @since 0.1.0 */
 
 import type {CascadeRuntime} from "./graph.ts";
+import type {CascadeEffect, WriteAddress} from "./operation.ts";
 import type {
+  ConditionOf,
   NextRegisteredRule,
   RegisteredRule,
   RuleValidation,
+  RuleSetValidation,
   RuntimeRule,
   RuntimeRuleHandler,
 } from "./rules.ts";
@@ -23,7 +26,7 @@ import {RuleBundle} from "./rules.ts";
  * Create one builder for each independently configured graph, add rule bundles
  * and rules, then call {@link Cascade.make} to allocate an executable runtime.
  *
- * @since 0.1.0
+ * @since 0.2.0
  * @category Models
  */
 export class Cascade<Registered extends RegisteredRule = never> {
@@ -33,7 +36,9 @@ export class Cascade<Registered extends RegisteredRule = never> {
     this.#rules = rules;
   }
 
-  extend(bundle: RuleBundle): Cascade<Registered> {
+  extend<BundleRegistered extends RegisteredRule>(
+    bundle: RuleBundle<BundleRegistered> & RuleSetValidation<Registered, BundleRegistered>,
+  ): Cascade<Registered | BundleRegistered> {
     return new Cascade([...this.#rules, ...bundle.entries]);
   }
 
@@ -44,20 +49,14 @@ export class Cascade<Registered extends RegisteredRule = never> {
    * creates independent graph state and broadcast streams for graph changes
    * and rule failures.
    *
-   * @since 0.1.0
+   * @since 0.2.0
    * @category Constructors
    */
   make(): Effect.Effect<CascadeRuntime> {
     return makeRuntime(this.#rules);
   }
 
-  rule<
-    Condition extends TokenInstanceRef,
-    Yielded extends import("./operation.ts").CascadeEffect<
-      void,
-      import("./operation.ts").WriteAddress
-    >,
-  >(
+  rule<Condition extends TokenInstanceRef, Yielded extends CascadeEffect<void, WriteAddress>>(
     condition: Condition,
     handler: (
       token: LiveToken<
@@ -66,10 +65,10 @@ export class Cascade<Registered extends RegisteredRule = never> {
         readonly []
       >,
     ) => Generator<Yielded, void, never> &
-      RuleValidation<Registered, import("./rules.ts").ConditionOf<Condition>, Yielded>,
+      RuleValidation<Registered, ConditionOf<Condition>, Yielded>,
   ): Cascade<NextRegisteredRule<Registered, Condition, Yielded>> {
     const runtimeHandler: RuntimeRuleHandler = token => {
-      // SAFETY: runtime matching proves the handle definition equals the condition definition.
+      // SAFETY: the scheduler only invokes a rule for its own matching definition.
       const matched = token as LiveToken<
         DefinitionOf<Condition>,
         DefinitionName<DefinitionOf<Condition>>,
