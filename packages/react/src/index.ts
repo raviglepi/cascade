@@ -13,20 +13,12 @@ export type {
   ErrorReporter,
 } from "./errors.tsx";
 export {
-  /** @since 0.1.0 */
-  Column,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   Element,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   Event,
-  /** @since 0.1.0 */
-  Image,
-  /** @since 0.1.0 */
-  Row,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   Style,
-  /** @since 0.1.0 */
-  Text,
 } from "./primitives.ts";
 export {
   /** @since 0.2.0 */
@@ -41,23 +33,21 @@ export {
   SizeSchema,
 } from "./semantic-values.ts";
 export type {
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   ElementFamily,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   ElementToken,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   EventFamily,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   EventProperty,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   EventToken,
-  /** @since 0.1.0 */
-  ImageSource,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   StyleFamily,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   StyleProperty,
-  /** @since 0.1.0 */
+  /** @since 0.2.0 */
   StyleToken,
 } from "./primitives.ts";
 export {
