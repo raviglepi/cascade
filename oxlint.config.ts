@@ -1,4 +1,5 @@
 import {recommended} from "@effect/tsgo/oxlint-presets";
+
 import {defineConfig} from "oxlint";
 
 export default defineConfig({
@@ -40,7 +41,7 @@ export default defineConfig({
     "typescript/restrict-template-expressions": "off",
     "typescript/unbound-method": "off",
     "no-unused-vars": "warn",
-    complexity: "error",
+    complexity: ["error", {max: 3}],
     "anti-slop/no-chained-type-assertions": "error",
     "anti-slop/no-conditional-empty-object-spread": "error",
     "anti-slop/no-known-value-widening": "error",

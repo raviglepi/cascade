@@ -1,6 +1,8 @@
 import {expect, it} from "vitest";
 
-import {Cascade, Not, Token} from "../src/index.ts";
+import {Effect} from "effect";
+
+import {Cascade, Not, Rule, Rules, Token, type Mount} from "../src/index.ts";
 
 const Fill = Token("Fill")();
 const Ghost = Token("Ghost")(Not(Fill()));
@@ -19,6 +21,47 @@ new Cascade()
     yield* button.get(Opacity()).pipe(Token.setValue(0.8));
   });
 
+new Cascade().extend(
+  // @ts-expect-error Rule bundles preserve internal conflicts when extended.
+  Rules({
+    first: Rule(Button(), function* (button) {
+      yield* button.get(Opacity()).pipe(Token.setValue(0.5));
+    }),
+    second: Rule(Button(), function* (button) {
+      yield* button.get(Opacity()).pipe(Token.setValue(0.8));
+    }),
+  }),
+);
+
+const bundledRule = Rules({
+  setOpacity: Rule(Button(), function* (button) {
+    yield* button.get(Opacity()).pipe(Token.setValue(0.5));
+  }),
+});
+
+new Cascade()
+  .rule(Button(), function* (button) {
+    yield* button.get(Opacity()).pipe(Token.setValue(0.8));
+  })
+  // @ts-expect-error Rules preserved through a bundle conflict with an earlier builder rule.
+  .extend(bundledRule);
+
+const cascade = new Cascade();
+const runtime = cascade.make();
+type Runtime = Effect.Success<typeof runtime>;
+declare const mount: Mount;
+
+const verifyRetiredApi = (): undefined => {
+  // @ts-expect-error The retired runtime builder name is not public.
+  cascade.gen();
+  // @ts-expect-error Cascade no longer exposes a runtime layer.
+  cascade.layer();
+  // @ts-expect-error Mount changes are opaque streams rather than SubscriptionRefs.
+  return mount.revision;
+};
+void verifyRetiredApi;
+
 it("keeps the static contract in the TypeScript build", () => {
+  expect<Runtime | undefined>(undefined).toBeUndefined();
   expect(true).toBe(true);
 });

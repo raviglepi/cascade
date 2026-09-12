@@ -1,6 +1,8 @@
-import {describe, expect, it} from "vitest";
+import {describe, expect, it} from "@effect/vitest";
 
-import {Alias, Not, Token} from "../src/index.ts";
+import {Effect} from "effect";
+
+import {Alias, Cascade, Not, Token} from "../src/index.ts";
 
 describe("token descriptions", () => {
   it("creates fresh default relations for every instance", () => {
@@ -11,8 +13,10 @@ describe("token descriptions", () => {
     const second = Name();
 
     expect(first.id).not.toBe(second.id);
-    expect(first.tokens()[0]?.id).not.toBe(second.tokens()[0]?.id);
-    expect(first.tokens()[0]?.value()).toBe("default");
+    const firstText = first.tokens()[0]!;
+    const secondText = second.tokens()[0]!;
+    expect(firstText.id).not.toBe(secondText.id);
+    expect(firstText.value()).toBe("default");
   });
 
   it("lets the last incompatible relation win", () => {
@@ -35,16 +39,30 @@ describe("token descriptions", () => {
     const GhostButton = Alias(Button(Ghost()));
     const Panel = Token("Panel")();
 
-    const first = Panel(GhostButton).tokens()[0];
-    const second = Panel(GhostButton).tokens()[0];
+    const first = Panel(GhostButton).tokens()[0]!;
+    const second = Panel(GhostButton).tokens()[0]!;
 
-    expect(first?.definition).toBe(Button);
-    expect(first?.id).not.toBe(second?.id);
-    expect(first?.tokens()[0]?.definition).toBe(Ghost);
+    expect(first.definition).toBe(Button);
+    expect(first.id).not.toBe(second.id);
+    expect(first.tokens()[0]!.definition).toBe(Ghost);
   });
 
   it("supports the compact generic value declaration", () => {
     const Text = Token<string>("Text")();
     expect(Text("hello").value()).toBe("hello");
   });
+
+  it.effect("preserves an explicitly supplied undefined value", () =>
+    Effect.gen(function* () {
+      const Maybe = Token("Maybe")<undefined>();
+      const runtime = yield* new Cascade().make();
+      const mounted = yield* runtime.mount(Maybe(undefined));
+      const maybe = mounted.roots[0]!;
+
+      expect(maybe.hasValue()).toBe(true);
+      expect(maybe.value()).toBeUndefined();
+
+      yield* mounted.release;
+    }),
+  );
 });

@@ -1,10 +1,13 @@
 {
   "name": "cascade",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "github.com/raviglepi/cascade",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "effect": "^4.0.0-rc"
   }
 }

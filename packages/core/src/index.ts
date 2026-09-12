@@ -1,3 +1,5 @@
+import {isTokenInstance as isTokenInstanceInternal} from "./token.ts";
+
 /** @since 0.1.0 */
 
 export {
@@ -8,7 +10,7 @@ export type {
   /** @since 0.1.0 */
   CascadeRuntime,
   /** @since 0.1.0 */
-  MountedRoots,
+  Mount,
 } from "./graph.ts";
 export type {
   /** @since 0.1.0 */
@@ -33,8 +35,6 @@ export type {
   RuleDefinition,
   /** @since 0.1.0 */
   RuleFailure,
-  /** @since 0.1.0 */
-  RuleFailureListener,
 } from "./rules.ts";
 export {
   /** @since 0.1.0 */
@@ -44,6 +44,8 @@ export {
   /** @since 0.1.0 */
   Token,
 } from "./token.ts";
+/** @internal */
+export const isTokenInstance = isTokenInstanceInternal;
 export type {
   /** @since 0.1.0 */
   DefinitionName,

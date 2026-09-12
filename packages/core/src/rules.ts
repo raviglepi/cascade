@@ -1,5 +1,7 @@
 /** @since 0.1.0 */
 
+import type {IsEqual, IsNever} from "type-fest";
+import type {Cause} from "effect";
 import type {CascadeEffect, WriteAddress, WritesOf, WriteSlot} from "./operation.ts";
 import type {
   DefinitionName,
@@ -12,22 +14,24 @@ import type {
   TokenInstanceRef,
 } from "./token.ts";
 
-/** @since 0.1.0 */
+import {Predicate} from "effect";
+
+/** @since 0.2.0 */
 export interface RuleFailure {
-  readonly cause: unknown;
+  readonly cause: Cause.Cause<never>;
   readonly rule: string;
   readonly token: LiveToken;
 }
 
-/** @since 0.1.0 */
+/** @internal */
 export type RuleFailureListener = (failure: RuleFailure) => void;
 
-/** @since 0.1.0 */
+/** @internal */
 export type RuntimeRuleHandler = (
   token: LiveToken<TokenDefinitionRef, string, readonly []>,
 ) => Generator<CascadeEffect<void, WriteAddress>, void, never>;
 
-/** @since 0.1.0 */
+/** @internal */
 export interface RuntimeRule {
   readonly condition: TokenInstanceRef;
   readonly handler: RuntimeRuleHandler;
@@ -45,11 +49,13 @@ interface ConditionSummary<
 }
 
 /** @internal */
-interface RegisteredRule<
+export interface RegisteredRule<
   Condition extends ConditionSummary = ConditionSummary,
   Writes extends WriteAddress = WriteAddress,
+  Name extends string = string,
 > {
   readonly condition: Condition;
+  readonly name: Name;
   readonly writes: Writes;
 }
 
@@ -61,7 +67,7 @@ type ExcludedNames<Definitions extends TokenDefinitionRef> = Definitions extends
   ? Names<ExcludedBy<Definitions>>
   : never;
 
-/** @since 0.1.0 */
+/** @since 0.2.0 */
 export type ConditionOf<Condition extends TokenInstanceRef> = ConditionSummary<
   DefinitionName<DefinitionOf<Condition>>,
   Names<PositiveOf<Condition>>,
@@ -77,18 +83,10 @@ type ConditionsDisjoint<Left extends ConditionSummary, Right extends ConditionSu
         : true
       : true;
 
-type SamePath<
-  Left extends readonly string[],
-  Right extends readonly string[],
-> = Left extends readonly [infer LeftHead, ...infer LeftTail extends readonly string[]]
-  ? Right extends readonly [infer RightHead, ...infer RightTail extends readonly string[]]
-    ? [LeftHead, RightHead] extends [RightHead, LeftHead]
-      ? SamePath<LeftTail, RightTail>
-      : false
-    : false
-  : Right extends readonly []
-    ? true
-    : false;
+type SamePath<Left extends readonly string[], Right extends readonly string[]> = IsEqual<
+  Left,
+  Right
+>;
 
 type SlotsOverlap<Left extends WriteSlot, Right extends WriteSlot> = Left extends {
   readonly kind: "value";
@@ -137,10 +135,12 @@ type ConflictWithEarlier<
         : never
     : never;
 
-/** @since 0.1.0 */
-type RuleValidation<Earlier extends RegisteredRule, Condition extends ConditionSummary, Yielded> = [
+/** @internal */
+export type RuleValidation<
+  Earlier extends RegisteredRule,
+  Condition extends ConditionSummary,
   Yielded,
-] extends [never]
+> = [IsNever<Yielded>] extends [true]
   ? object
   : Yielded extends CascadeEffect<void, WriteAddress>
     ? [ConflictWithEarlier<Earlier, Condition, WritesOf<Yielded>>] extends [never]
@@ -151,22 +151,28 @@ type RuleValidation<Earlier extends RegisteredRule, Condition extends ConditionS
         }
     : {readonly "Cascade rule error": "handlers may only yield Cascade operations"};
 
-/** @since 0.1.0 */
+/** @internal */
 export type NextRegisteredRule<
   Earlier extends RegisteredRule,
   Condition extends TokenInstanceRef,
   Yielded,
 > = Earlier | RegisteredRule<ConditionOf<Condition>, WritesOf<Yielded>>;
 
-/** @since 0.1.0 */
-export interface RuleDefinition {
-  readonly condition: TokenInstanceRef;
+declare const RuleDefinitionTypeId: unique symbol;
+
+/** @since 0.2.0 */
+export interface RuleDefinition<
+  Condition extends TokenInstanceRef = TokenInstanceRef,
+  Yielded extends CascadeEffect<void, WriteAddress> = CascadeEffect<void, WriteAddress>,
+> {
+  readonly condition: Condition;
   readonly handler: RuntimeRuleHandler;
+  readonly [RuleDefinitionTypeId]?: RegisteredRule<ConditionOf<Condition>, WritesOf<Yielded>>;
 }
 
 const ruleDefinitions = new WeakSet<object>();
 
-/** @since 0.1.0 */
+/** @since 0.2.0 */
 export function Rule<
   Condition extends TokenInstanceRef,
   Yielded extends CascadeEffect<void, WriteAddress>,
@@ -175,37 +181,116 @@ export function Rule<
   handler: (
     token: LiveToken<DefinitionOf<Condition>, DefinitionName<DefinitionOf<Condition>>, readonly []>,
   ) => Generator<Yielded, void, never>,
-): RuleDefinition {
+): RuleDefinition<Condition, Yielded> {
   const runtimeHandler: RuntimeRuleHandler = token => {
-    // SAFETY: rule matching proves the runtime handle has the condition definition.
+    // SAFETY: the scheduler only invokes a rule for its own matching definition.
     const matched = token as LiveToken<
       DefinitionOf<Condition>,
       DefinitionName<DefinitionOf<Condition>>,
       readonly []
     >;
-    // SAFETY: Yielded is constrained to Cascade mutation effects by Rule's generic.
+    // SAFETY: Rule constrains every yielded operation to CascadeEffect.
     return handler(matched) as Generator<CascadeEffect<void, WriteAddress>, void, never>;
   };
-  const definition: RuleDefinition = {condition, handler: runtimeHandler};
+  const definition: RuleDefinition<Condition, Yielded> = {condition, handler: runtimeHandler};
   ruleDefinitions.add(definition);
   return definition;
 }
 
-/** @since 0.1.0 */
-export class RuleBundle {
+type RuleMetadata<Definition> =
+  Definition extends RuleDefinition<
+    infer Condition extends TokenInstanceRef,
+    infer Yielded extends CascadeEffect<void, WriteAddress>
+  >
+    ? RegisteredRule<ConditionOf<Condition>, WritesOf<Yielded>>
+    : never;
+
+type RuleName<Prefix extends string, Key extends string> = Prefix extends ""
+  ? Key
+  : `${Prefix}.${Key}`;
+
+type RuleTreeMetadata<Tree, Prefix extends string = ""> = Tree extends RuleDefinition
+  ? RuleMetadata<Tree> extends RegisteredRule<
+      infer Condition extends ConditionSummary,
+      infer Writes extends WriteAddress
+    >
+    ? RegisteredRule<Condition, Writes, Prefix>
+    : never
+  : Tree extends object
+    ? {
+        [Key in keyof Tree & string]: RuleTreeMetadata<Tree[Key], RuleName<Prefix, Key>>;
+      }[keyof Tree & string]
+    : never;
+
+type RuleSetConflict<Earlier extends RegisteredRule, Rules extends RegisteredRule> =
+  Rules extends RegisteredRule<
+    infer Condition extends ConditionSummary,
+    infer Writes extends WriteAddress
+  >
+    ? ConflictWithEarlier<Earlier, Condition, Writes>
+    : never;
+
+type InternalRuleSetConflict<
+  Rules extends RegisteredRule,
+  Candidate extends RegisteredRule = Rules,
+> =
+  Candidate extends RegisteredRule<
+    infer Condition extends ConditionSummary,
+    infer Writes extends WriteAddress,
+    infer Name extends string
+  >
+    ? ConflictWithEarlier<Exclude<Rules, {readonly name: Name}>, Condition, Writes>
+    : never;
+
+/** @internal */
+export type RuleSetValidation<Earlier extends RegisteredRule, Rules extends RegisteredRule> =
+  IsNever<RuleSetConflict<Earlier, Rules> | InternalRuleSetConflict<Rules>> extends true
+    ? object
+    : {readonly "Cascade rule conflict": "conditions overlap and write the same target"};
+
+/** @since 0.2.0 */
+export class RuleBundle<Registered extends RegisteredRule = never> {
   readonly entries: readonly RuntimeRule[];
 
   constructor(entries: readonly RuntimeRule[]) {
     this.entries = entries;
   }
 
-  with(...names: readonly string[]): RuleBundle {
+  with<const Names extends readonly string[]>(
+    ...names: Names
+  ): RuleBundle<Extract<Registered, {readonly name: Names[number]}>> {
     return new RuleBundle(this.entries.filter(entry => names.includes(entry.name)));
   }
 
-  without(...names: readonly string[]): RuleBundle {
+  without<const Names extends readonly string[]>(
+    ...names: Names
+  ): RuleBundle<Exclude<Registered, {readonly name: Names[number]}>> {
     return new RuleBundle(this.entries.filter(entry => !names.includes(entry.name)));
   }
+}
+
+function nestedRuleName(prefix: string, key: string): string {
+  return prefix.length === 0 ? key : `${prefix}.${key}`;
+}
+
+function flattenRule(options: {
+  readonly output: RuntimeRule[];
+  readonly prefix: string;
+  readonly value: unknown;
+  readonly key: string;
+}): void {
+  const name = nestedRuleName(options.prefix, options.key);
+  if (isRuleDefinition(options.value)) {
+    const definition = options.value;
+    options.output.push({...definition, name});
+    return;
+  }
+  if (Predicate.isObject(options.value))
+    flattenRules({output: options.output, prefix: name, tree: options.value});
+}
+
+function isRuleDefinition(value: unknown): value is RuleDefinition {
+  return ruleDefinitions.has(Object(value));
 }
 
 function flattenRules(options: {
@@ -213,33 +298,14 @@ function flattenRules(options: {
   readonly prefix: string;
   readonly tree: object;
 }): void {
-  for (const key of Object.keys(options.tree)) {
-    // SAFETY: Object.keys returned key from this exact tree object.
-    const value = options.tree[key as keyof typeof options.tree];
-    const name = options.prefix.length === 0 ? key : `${options.prefix}.${key}`;
-    if (ruleDefinitions.has(Object(value))) {
-      // SAFETY: only Rule() adds values to the marker WeakSet.
-      const definition = value as RuleDefinition;
-      options.output.push({...definition, name});
-      continue;
-    }
-    if (value === Object(value)) {
-      // SAFETY: the identity check excludes primitives before recursive traversal.
-      flattenRules({output: options.output, prefix: name, tree: value as object});
-    }
+  for (const [key, value] of Object.entries(options.tree)) {
+    flattenRule({key, output: options.output, prefix: options.prefix, value});
   }
 }
 
-/** @since 0.1.0 */
-export function Rules<const Tree extends object>(tree: Tree): RuleBundle {
+/** @since 0.2.0 */
+export function Rules<const Tree extends object>(tree: Tree): RuleBundle<RuleTreeMetadata<Tree>> {
   const entries: RuntimeRule[] = [];
   flattenRules({output: entries, prefix: "", tree});
   return new RuleBundle(entries);
 }
-
-export type {
-  /** @since 0.1.0 */
-  RegisteredRule,
-  /** @since 0.1.0 */
-  RuleValidation,
-};

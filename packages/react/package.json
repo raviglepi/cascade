@@ -1,15 +1,17 @@
 {
   "name": "@cascade/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "github.com/raviglepi/cascade",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./demo": "./demo/contact-row.tsx"
+    ".": "./src/index.ts"
   },
   "dependencies": {
-    "cascade": "workspace:*"
+    "@effect/atom-react": "^4.0.0-rc",
+    "cascade": "workspace:*",
+    "effect": "^4.0.0-rc",
+    "scheduler": "^0.27.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

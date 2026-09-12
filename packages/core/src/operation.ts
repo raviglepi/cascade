@@ -1,6 +1,6 @@
 /** @since 0.1.0 */
 
-import type * as Effect from "effect/Effect";
+import type {Effect} from "effect";
 
 /** @since 0.1.0 */
 export type WriteSlot =
