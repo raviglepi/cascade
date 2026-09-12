@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          fetch-depth: 0
           submodules: recursive
 
       - uses: pnpm/action-setup@v4
@@ -32,4 +33,4 @@ jobs:
       - run: bun run test
       - run: bun run docs
       - run: bun run build
-      - run: bun run changeset status
+      - run: bun run changeset status --since origin/main

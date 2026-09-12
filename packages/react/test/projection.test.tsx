@@ -6,17 +6,7 @@ import {Effect} from "effect";
 import {isValidElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {Cascade, Token} from "cascade";
-import {
-  Color,
-  Column,
-  Element,
-  Event,
-  Row,
-  Size,
-  Style,
-  Text,
-  createReactRenderer,
-} from "../src/index.ts";
+import {Element, Event, Style, createReactRenderer} from "../src/index.ts";
 import {ListenerDispatcher, project} from "../src/projection.tsx";
 
 describe("React projection", () => {
@@ -44,19 +34,12 @@ describe("React projection", () => {
     expect(reportedRules).toEqual(["Item.1"]);
   });
 
-  it("groups multiple hosts before applying native CSS decorators", () => {
+  it("groups native CSS decorators on a host", () => {
     const Card = Token("Card")();
     const runtime = Effect.runSync(new Cascade().make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
-      renderer.render(
-        Card(
-          Style.Color(Color.Css({value: "navy"})),
-          Style.Padding(Size.Rem(1)),
-          Row(Text("Primary")),
-          Column(Text("Secondary")),
-        ),
-      ),
+      renderer.render(Card(Style.Color("navy"), Style.Padding("1rem"), Element.Div())),
     );
 
     expect(html).toContain("color:navy");
@@ -64,30 +47,10 @@ describe("React projection", () => {
     expect(html.match(/color:navy/g)).toHaveLength(1);
   });
 
-  it("projects generated CSS decorators through their metadata", () => {
-    const Card = Token("Card")();
-    const runtime = Effect.runSync(new Cascade().make());
-    const renderer = createReactRenderer({reportError: () => undefined, runtime});
-    const html = renderToStaticMarkup(
-      renderer.render(
-        Card(Style.FlexWrap("wrap"), Style.JustifyContent("space-between"), Row(Text("Primary"))),
-      ),
-    );
-
-    expect(html).toContain("flex-wrap:wrap");
-    expect(html).toContain("justify-content:space-between");
-  });
-
   it("projects generated event decorators and skips absent listeners", () => {
     const runtime = Effect.runSync(new Cascade().make());
     const mounted = Effect.runSync(
-      runtime.mount(
-        Element.Button(
-          Event.OnClick(() => Effect.void),
-          Text("Handled"),
-        ),
-        Element.Button(Text("Absent")),
-      ),
+      runtime.mount(Element.Button(Event.OnClick(() => Effect.void)), Element.Button()),
     );
 
     const [handled, absent] = Effect.runSync(

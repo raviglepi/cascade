@@ -38,16 +38,16 @@
       "name": "cascade",
       "version": "0.1.0",
       "dependencies": {
-        "effect": "4.0.0-rc.112",
+        "effect": "^4.0.0-rc",
       },
     },
     "packages/react": {
       "name": "@cascade/react",
       "version": "0.1.0",
       "dependencies": {
-        "@effect/atom-react": "4.0.0-rc.112",
+        "@effect/atom-react": "^4.0.0-rc",
         "cascade": "workspace:*",
-        "effect": "4.0.0-rc.112",
+        "effect": "^4.0.0-rc",
         "scheduler": "^0.27.0",
       },
       "devDependencies": {
