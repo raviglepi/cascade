@@ -1,6 +1,6 @@
 /** @since 0.1.0 */
 
-import type {CascadeEffect, WriteAddress} from "./operation.ts";
+import type {WhuiyEffect, WriteAddress} from "./operation.ts";
 import type {RuntimeRule, RuleFailure} from "./rules.ts";
 import type {
   DefinitionName,
@@ -78,7 +78,7 @@ type DrainCompletion =
   | {readonly changed: boolean; readonly kind: "complete"};
 
 /**
- * Roots retained by a Cascade runtime.
+ * Roots retained by a Whuiy runtime.
  *
  * **When to use**
  *
@@ -97,25 +97,25 @@ export interface Mount {
 }
 
 /**
- * Executes and observes one configured Cascade graph.
+ * Executes and observes one configured Whuiy graph.
  *
  * **When to use**
  *
- * Allocate a runtime from {@link Cascade.make}, mount token roots through it,
- * and consume {@link CascadeRuntime.ruleFailures} when an adapter needs to
+ * Allocate a runtime from {@link Whuiy.make}, mount token roots through it,
+ * and consume {@link WhuiyRuntime.ruleFailures} when an adapter needs to
  * report failed rule invocations.
  *
  * @since 0.2.0
  * @category Models
  */
-export interface CascadeRuntime {
+export interface WhuiyRuntime {
   /** Mounts token roots and returns their live handles. */
   readonly mount: (...roots: readonly TokenRoot[]) => Effect.Effect<Mount>;
   /** Broadcasts one event for every failed synchronous rule invocation. */
   readonly ruleFailures: Stream.Stream<RuleFailure>;
 }
 
-interface RuntimeOperations extends CascadeRuntime {
+interface RuntimeOperations extends WhuiyRuntime {
   readonly add: (node: LiveNode, roots: readonly TokenRoot[]) => Effect.Effect<void>;
   readonly del: (node: LiveNode, roots: readonly TokenRoot[]) => Effect.Effect<void>;
   readonly findRelated: (
@@ -135,9 +135,9 @@ interface RuntimeOperations extends CascadeRuntime {
 function makeOperation<Writes extends WriteAddress>(options: {
   readonly effect: Effect.Effect<void>;
   readonly writes: Writes;
-}): CascadeEffect<void, Writes> {
-  // SAFETY: `CascadeEffect` only augments Effect with this exact write marker.
-  return Object.assign(options.effect, {[OperationWritesId]: options.writes}) as CascadeEffect<
+}): WhuiyEffect<void, Writes> {
+  // SAFETY: `WhuiyEffect` only augments Effect with this exact write marker.
+  return Object.assign(options.effect, {[OperationWritesId]: options.writes}) as WhuiyEffect<
     void,
     Writes
   >;
@@ -202,7 +202,7 @@ class LiveTokenImpl<
 
   add<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>> {
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>> {
     return makeOperation({
       effect: this.#runtime.add(this.#node, terms),
       writes: {path: this.#path, root: this.#root, slot: {kind: "relations"}},
@@ -211,7 +211,7 @@ class LiveTokenImpl<
 
   del<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<void, RelationWrite<Terms, Root, Path>> {
+  ): WhuiyEffect<void, RelationWrite<Terms, Root, Path>> {
     // SAFETY: every joined name is derived from one of `Terms`.
     const definition = terms
       .map(term => expandRoot(term).definition.name)
@@ -258,7 +258,7 @@ class LiveTokenImpl<
 
   set<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>> {
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>> {
     return makeOperation({
       effect: this.#runtime.set(this.#node, terms),
       writes: {path: this.#path, root: this.#root, slot: {kind: "relations"}},
@@ -267,7 +267,7 @@ class LiveTokenImpl<
 
   setValue(
     value: ValueOf<Definition>,
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>> {
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>> {
     return makeOperation({
       effect: this.#runtime.setValue(this.#node, value),
       writes: {path: this.#path, root: this.#root, slot: {kind: "value"}},
@@ -524,7 +524,7 @@ function mergeRelation(state: GraphState, owner: LiveNode, blueprint: TokenInsta
 }
 
 /** @internal */
-export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly RuntimeRule[]) {
+export const make = Effect.fn("WhuiyRuntime.make")(function* (rules: readonly RuntimeRule[]) {
   const initial = initialState(rules);
   const state = yield* Ref.make(initial);
   const revision = yield* SubscriptionRef.make(0);
@@ -544,7 +544,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
           current.nodes.has(entry.node.blueprint) && matches(entry.node, entry.rule.condition),
       ),
     );
-  const runRule = Effect.fn("CascadeRuntime.runRule")(function* (entry: RuleEntry) {
+  const runRule = Effect.fn("WhuiyRuntime.runRule")(function* (entry: RuleEntry) {
     if (!(yield* entryStillMatches(entry))) return;
     const {exit, token} = yield* captureRuleExit(entry);
     if (Exit.isFailure(exit))
@@ -568,19 +568,19 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
     return [{changed, kind: "complete"}, current];
   });
   let drainRules: () => Effect.Effect<void>;
-  const finishDrain = Effect.fn("CascadeRuntime.finishDrain")(function* () {
+  const finishDrain = Effect.fn("WhuiyRuntime.finishDrain")(function* () {
     const completion = yield* completeDrain;
     if (completion.kind === "continue") return yield* drainRules();
     if (completion.changed) yield* SubscriptionRef.update(revision, value => value + 1);
   });
-  drainRules = Effect.fn("CascadeRuntime.drainRules")(function* () {
+  drainRules = Effect.fn("WhuiyRuntime.drainRules")(function* () {
     const entries = yield* takePendingEntries;
     if (entries === undefined) return yield* finishDrain();
     yield* Effect.forEach(entries, runRule, {concurrency: 1, discard: true});
     return yield* drainRules();
   });
 
-  const change = Effect.fn("CascadeRuntime.change")(function* (
+  const change = Effect.fn("WhuiyRuntime.change")(function* (
     mutation: (state: GraphState) => void,
   ) {
     const shouldDrain = yield* Ref.modify(state, current => {
@@ -599,7 +599,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
     root: Root,
     path: Path,
   ): LiveToken<TokenDefinitionRef, Root, Path> => new LiveTokenImpl({node, path, root, runtime});
-  const add = Effect.fn("CascadeRuntime.add")(function* (
+  const add = Effect.fn("WhuiyRuntime.add")(function* (
     node: LiveNode,
     roots: readonly TokenRoot[],
   ) {
@@ -607,7 +607,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
       for (const root of roots) mergeRelation(current, node, expandRoot(root));
     });
   });
-  const del = Effect.fn("CascadeRuntime.del")(function* (
+  const del = Effect.fn("WhuiyRuntime.del")(function* (
     node: LiveNode,
     roots: readonly TokenRoot[],
   ) {
@@ -622,7 +622,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
     [...node.outgoing.values(), ...node.incoming].find(candidate =>
       relatedNodeMatches(candidate, target),
     );
-  const releaseRoots = Effect.fn("CascadeRuntime.releaseRoots")(function* (
+  const releaseRoots = Effect.fn("WhuiyRuntime.releaseRoots")(function* (
     nodes: readonly LiveNode[],
   ) {
     yield* change(current => {
@@ -632,7 +632,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
       }
     });
   });
-  const set = Effect.fn("CascadeRuntime.set")(function* (
+  const set = Effect.fn("WhuiyRuntime.set")(function* (
     node: LiveNode,
     roots: readonly TokenRoot[],
   ) {
@@ -641,7 +641,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
       for (const root of roots) mergeRelation(current, node, expandRoot(root));
     });
   });
-  const setValue = Effect.fn("CascadeRuntime.setValue")(function* (
+  const setValue = Effect.fn("WhuiyRuntime.setValue")(function* (
     node: LiveNode,
     value: TokenValue,
   ) {
@@ -650,7 +650,7 @@ export const make = Effect.fn("CascadeRuntime.make")(function* (rules: readonly 
       current.rules.markChanged(node.blueprint.definition);
     });
   });
-  const mount = Effect.fn("CascadeRuntime.mount")(function* (...roots: readonly TokenRoot[]) {
+  const mount = Effect.fn("WhuiyRuntime.mount")(function* (...roots: readonly TokenRoot[]) {
     const [mounted, shouldDrain] = yield* Ref.modify(state, current => {
       const nodes = roots.map(root => mountNode(current, expandRoot(root)));
       for (const node of nodes) node.rootReferences += 1;

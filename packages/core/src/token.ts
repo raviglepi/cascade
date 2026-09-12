@@ -1,6 +1,6 @@
 /** @since 0.1.0 */
 
-import type {CascadeEffect, WriteAddress} from "./operation.ts";
+import type {WhuiyEffect, WriteAddress} from "./operation.ts";
 
 const definitions = new WeakSet<object>();
 const instances = new WeakSet<object>();
@@ -10,13 +10,13 @@ const exclusions = new WeakSet<object>();
 let nextTokenId = 1;
 
 /** @since 0.1.0 */
-export const TokenDefinitionId: unique symbol = Symbol("cascade.token.definition");
+export const TokenDefinitionId: unique symbol = Symbol("whuiy.token.definition");
 /** @since 0.1.0 */
-export const TokenInstanceId: unique symbol = Symbol("cascade.token.instance");
+export const TokenInstanceId: unique symbol = Symbol("whuiy.token.instance");
 /** @since 0.1.0 */
-export const TokenAliasId: unique symbol = Symbol("cascade.token.alias");
+export const TokenAliasId: unique symbol = Symbol("whuiy.token.alias");
 /** @since 0.1.0 */
-export const NotTermId: unique symbol = Symbol("cascade.token.not");
+export const NotTermId: unique symbol = Symbol("whuiy.token.not");
 
 /** @since 0.1.0 */
 export type TokenValue = bigint | boolean | null | number | object | string | symbol | undefined;
@@ -158,7 +158,7 @@ type ValidateComposition<
   Terms extends readonly TokenTerm[],
 > = [CompositionProblem<Existing, Terms>] extends [never]
   ? Terms
-  : Terms & {readonly "Cascade composition conflict": CompositionProblem<Existing, Terms>};
+  : Terms & {readonly "Whuiy composition conflict": CompositionProblem<Existing, Terms>};
 
 /** @since 0.1.0 */
 export interface TokenInstance<
@@ -233,10 +233,10 @@ export interface LiveToken<
   readonly id: number;
   add<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
   del<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<
+  ): WhuiyEffect<
     void,
     WriteAddress<
       Root,
@@ -261,10 +261,10 @@ export interface LiveToken<
   pipe<Result>(operation: (token: this) => Result): Result;
   set<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
   setValue(
     value: ValueOf<Definition>,
-  ): CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>>;
+  ): WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>>;
   tokens(): readonly LiveToken[];
   value(): ValueOf<Definition> | undefined;
 }
@@ -278,12 +278,12 @@ export interface TokenFactory {
     ...terms: Terms
   ): <Definition extends TokenDefinitionRef, Root extends string, Path extends readonly string[]>(
     token: LiveToken<Definition, Root, Path>,
-  ) => CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
+  ) => WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
   del<const Terms extends readonly TokenRoot[]>(
     ...terms: Terms
   ): <Definition extends TokenDefinitionRef, Root extends string, Path extends readonly string[]>(
     token: LiveToken<Definition, Root, Path>,
-  ) => CascadeEffect<
+  ) => WhuiyEffect<
     void,
     WriteAddress<
       Root,
@@ -298,13 +298,13 @@ export interface TokenFactory {
     ...terms: Terms
   ): <Definition extends TokenDefinitionRef, Root extends string, Path extends readonly string[]>(
     token: LiveToken<Definition, Root, Path>,
-  ) => CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
+  ) => WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "relations"}>>;
   setValue<Value extends TokenValue>(
     value: Value,
   ): <Definition extends TokenDefinitionRef, Root extends string, Path extends readonly string[]>(
     token: LiveToken<Definition, Root, Path> &
       ([Value] extends [ValueOf<Definition>] ? object : never),
-  ) => CascadeEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>>;
+  ) => WhuiyEffect<void, WriteAddress<Root, Path, {readonly kind: "value"}>>;
 }
 
 class DetachedToken implements TokenInstanceRef {
@@ -489,10 +489,10 @@ function makeDefinition<Name extends string, Value extends TokenValue>(
   };
   Object.defineProperty(declaration, "name", {configurable: true, value: name});
   const phantomDefinition = (): TokenDefinitionRef => {
-    throw new Error("Cascade token type metadata is not available at runtime");
+    throw new Error("Whuiy token type metadata is not available at runtime");
   };
   const phantomValue = (): Value => {
-    throw new Error("Cascade token type metadata is not available at runtime");
+    throw new Error("Whuiy token type metadata is not available at runtime");
   };
   const callable = Object.assign(declaration, {
     [TokenDefinitionId]: {

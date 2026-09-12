@@ -1,5 +1,5 @@
 {
-  "name": "cascade-workspace",
+  "name": "whuiy-workspace",
   "private": true,
   "workspaces": [
     "tools/*",

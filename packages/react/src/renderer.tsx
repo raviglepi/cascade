@@ -1,5 +1,5 @@
 import type {ReactElement, ReactNode} from "react";
-import type {CascadeRuntime, TokenRoot} from "cascade";
+import type {TokenRoot, WhuiyRuntime} from "whuiy";
 import type {ErrorReporter} from "./errors.tsx";
 
 import {RegistryProvider, useAtomSuspense} from "@effect/atom-react";
@@ -7,15 +7,15 @@ import {Effect, Fiber, Layer, Scope, Stream} from "effect";
 import {Atom} from "effect/unstable/reactivity";
 
 import {createElement, memo, useMemo} from "react";
-import {isTokenInstance} from "cascade";
-import {CascadeErrorBoundary} from "./errors.tsx";
+import {isTokenInstance} from "whuiy";
+import {WhuiyErrorBoundary} from "./errors.tsx";
 import {ListenerDispatcher, project} from "./projection.tsx";
 
 /** @since 0.1.0 */
 export interface ReactRendererOptions {
   readonly fallback?: ReactNode;
   readonly reportError: ErrorReporter;
-  readonly runtime: CascadeRuntime;
+  readonly runtime: WhuiyRuntime;
 }
 
 /** @since 0.1.0 */
@@ -26,7 +26,7 @@ export interface ReactRenderer {
 interface ProjectionProps {
   readonly reportError: ErrorReporter;
   readonly roots: readonly TokenRoot[];
-  readonly runtime: CascadeRuntime;
+  readonly runtime: WhuiyRuntime;
 }
 
 /** @internal */
@@ -159,7 +159,7 @@ export function createReactRenderer(options: ReactRendererOptions): ReactRendere
   return {
     render: (...roots) =>
       createElement(
-        CascadeErrorBoundary,
+        WhuiyErrorBoundary,
         {fallback, reportError: options.reportError, resetKey: roots.map(rootId).join(":")},
         createElement(
           RegistryProvider,

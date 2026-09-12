@@ -1,17 +1,17 @@
 import type {ErrorInfo, ReactNode} from "react";
-import type {RuleFailure} from "cascade";
+import type {RuleFailure} from "whuiy";
 
 import {Component} from "react";
 
 /** @since 0.1.0 */
-export type CascadeReactReport =
+export type WhuiyReactReport =
   | {readonly cause: unknown; readonly kind: "listener"; readonly tokenId: number}
   | {readonly cause: unknown; readonly kind: "projection"; readonly tokenId?: number}
   | {readonly cause: unknown; readonly componentStack: string; readonly kind: "render"}
   | {readonly failure: RuleFailure; readonly kind: "rule"};
 
 /** @since 0.1.0 */
-export type ErrorReporter = (report: CascadeReactReport) => void;
+export type ErrorReporter = (report: WhuiyReactReport) => void;
 
 interface ErrorBoundaryProps {
   readonly children?: ReactNode;
@@ -28,7 +28,7 @@ interface ErrorBoundaryState {
 /** @since 0.1.0 */
 export class ProjectionError {
   readonly cause: unknown;
-  readonly message = "Cascade could not project this token graph";
+  readonly message = "Whuiy could not project this token graph";
   readonly tokenId?: number;
 
   constructor(options: {readonly cause: unknown; readonly tokenId?: number}) {
@@ -49,7 +49,7 @@ function reportProjectionError(options: {
 }
 
 /** @since 0.1.0 */
-export class CascadeErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class WhuiyErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   override state: ErrorBoundaryState = {cause: undefined, resetKey: this.props.resetKey};
 
   static getDerivedStateFromError(cause: Error): Partial<ErrorBoundaryState> {

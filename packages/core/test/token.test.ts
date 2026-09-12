@@ -2,7 +2,7 @@ import {describe, expect, it} from "@effect/vitest";
 
 import {Effect} from "effect";
 
-import {Alias, Cascade, Not, Token} from "../src/index.ts";
+import {Alias, Not, Token, Whuiy} from "../src/index.ts";
 
 describe("token descriptions", () => {
   it("creates fresh default relations for every instance", () => {
@@ -55,7 +55,7 @@ describe("token descriptions", () => {
   it.effect("preserves an explicitly supplied undefined value", () =>
     Effect.gen(function* () {
       const Maybe = Token("Maybe")<undefined>();
-      const runtime = yield* new Cascade().make();
+      const runtime = yield* new Whuiy().make();
       const mounted = yield* runtime.mount(Maybe(undefined));
       const maybe = mounted.roots[0]!;
 

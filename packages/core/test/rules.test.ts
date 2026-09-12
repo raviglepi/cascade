@@ -3,7 +3,7 @@ import {describe, expect, it} from "@effect/vitest";
 
 import {Cause, Deferred, Effect, Fiber, Stream} from "effect";
 
-import {Cascade, Not, Token} from "../src/index.ts";
+import {Not, Token, Whuiy} from "../src/index.ts";
 
 const causeOf = (failure: RuleFailure): Cause.Cause<never> => failure.cause;
 
@@ -15,11 +15,11 @@ describe("rule engine", () => {
       const Opacity = Token("Opacity")<number>();
       const Button = Token("Button")();
       let runs = 0;
-      const cascade = new Cascade().rule(Button(Disabled()), function* (button) {
+      const whuiy = new Whuiy().rule(Button(Disabled()), function* (button) {
         runs += 1;
         yield* button.get(Opacity()).pipe(Token.setValue(0.5));
       });
-      const runtime = yield* cascade.make();
+      const runtime = yield* whuiy.make();
       const mounted = yield* runtime.mount(Button(Disabled(), Opacity(1)));
       const button = mounted.roots[0]!;
 
@@ -44,14 +44,14 @@ describe("rule engine", () => {
       const Opacity = Token("Opacity")<number>();
       const Button = Token("Button")();
 
-      const cascade = new Cascade()
+      const whuiy = new Whuiy()
         .rule(Button(Disabled(), Not(Ghost())), function* (button) {
           yield* button.get(Opacity()).pipe(Token.setValue(0.5));
         })
         .rule(Button(Ghost()), function* (button) {
           yield* button.get(Opacity()).pipe(Token.setValue(0.8));
         });
-      const runtime = yield* cascade.make();
+      const runtime = yield* whuiy.make();
       const mounted = yield* runtime.mount(Button(Ghost(), Opacity(1)));
 
       expect(mounted.roots[0]?.get(Opacity).value()).toBe(0.8);
@@ -65,7 +65,7 @@ describe("rule engine", () => {
       const Color = Token("Color")<string>();
       const Item = Token("Item")();
       let staleRuns = 0;
-      const runtime = yield* new Cascade()
+      const runtime = yield* new Whuiy()
         .rule(Item(Active()), function* (item) {
           yield* item.pipe(Token.del(Active()));
         })
@@ -91,7 +91,7 @@ describe("rule engine", () => {
         const Item = Token("Item")();
         const Touched = Token("Touched")();
         const broken = new Error("broken rule");
-        const cascade = new Cascade()
+        const whuiy = new Whuiy()
           .rule(Item(Active()), function* (item) {
             yield* item.pipe(Token.add(Touched()));
             throw broken;
@@ -99,7 +99,7 @@ describe("rule engine", () => {
           .rule(Item(Active()), function* (item) {
             yield* item.get(Color()).pipe(Token.setValue("green"));
           });
-        const runtime = yield* cascade.make();
+        const runtime = yield* whuiy.make();
         const reportedFailure = yield* Deferred.make<RuleFailure>();
         const pullFailure = yield* Stream.toPull(runtime.ruleFailures);
         const observer = yield* Effect.forkScoped(

@@ -1,7 +1,7 @@
 {
-  "name": "@cascade/react",
+  "name": "@whuiy/react",
   "version": "0.2.0",
-  "homepage": "github.com/raviglepi/cascade",
+  "homepage": "github.com/raviglepi/whuiy",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "@effect/atom-react": "^4.0.0-rc",
-    "cascade": "workspace:*",
     "effect": "^4.0.0-rc",
-    "scheduler": "^0.27.0"
+    "scheduler": "^0.27.0",
+    "whuiy": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

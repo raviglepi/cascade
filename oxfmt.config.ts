@@ -14,8 +14,8 @@ export default defineConfig({
   sortImports: {
     newlinesBetween: false,
     customGroups: [
-      {groupName: "value-cascade", elementNamePattern: ["cascade"], modifiers: ["value"]},
-      {groupName: "type-cascade", elementNamePattern: ["cascade"], modifiers: ["type"]},
+      {groupName: "value-whuiy", elementNamePattern: ["whuiy"], modifiers: ["value"]},
+      {groupName: "type-whuiy", elementNamePattern: ["whuiy"], modifiers: ["type"]},
       {groupName: "compile", elementNamePattern: ["comptime", "typesugar"]},
       {groupName: "config", elementNamePattern: ["vite", "vitest/config"]},
       {groupName: "test", elementNamePattern: ["vitest"]},
@@ -59,7 +59,7 @@ export default defineConfig({
       "type-effect-libs",
       "type-effect-libs-external",
 
-      "type-cascade",
+      "type-whuiy",
       "type-internal",
       "type-parent",
       "type-sibling",
@@ -83,7 +83,7 @@ export default defineConfig({
       {newlinesBetween: true},
 
       "value-external",
-      "value-cascade",
+      "value-whuiy",
       "value-internal",
       "value-parent",
       "value-sibling",

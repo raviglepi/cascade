@@ -20,15 +20,15 @@ export interface WriteAddress<
 }
 
 /** @since 0.1.0 */
-export const OperationWritesId: unique symbol = Symbol("cascade.operation.writes");
+export const OperationWritesId: unique symbol = Symbol("whuiy.operation.writes");
 
 /** @since 0.1.0 */
-export interface CascadeEffect<A, Writes extends WriteAddress = never> extends Effect.Effect<
+export interface WhuiyEffect<A, Writes extends WriteAddress = never> extends Effect.Effect<
   A,
   never
 > {
   readonly [OperationWritesId]: Writes;
-  [Symbol.iterator](): Effect.EffectIterator<CascadeEffect<A, Writes>>;
+  [Symbol.iterator](): Effect.EffectIterator<WhuiyEffect<A, Writes>>;
 }
 
 /** @since 0.1.0 */

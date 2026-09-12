@@ -1,12 +1,12 @@
 import type * as React from "react";
 import type {PascalCase} from "type-fest";
-import type {TokenDefinition, TokenDefinitionRef} from "cascade";
+import type {TokenDefinition, TokenDefinitionRef} from "whuiy";
 import {comptime} from "comptime";
 import {typeInfo} from "typesugar";
 
 import {Effect} from "effect";
 
-import {Token} from "cascade";
+import {Token} from "whuiy";
 
 /** @since 0.2.0 */
 export type StyleProperty = Extract<keyof React.CSSProperties, string>;

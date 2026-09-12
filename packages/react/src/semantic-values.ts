@@ -205,7 +205,7 @@ export const ColorSchema = Schema.TaggedUnion({
  * @since 0.2.0
  */
 export class ColorConversionError extends Schema.TaggedError<ColorConversionError>()(
-  "@cascade/react/ColorConversionError",
+  "@whuiy/react/ColorConversionError",
   {model: Schema.Literal("Css")},
 ) {}
 

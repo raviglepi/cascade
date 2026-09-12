@@ -1,7 +1,7 @@
 /** @since 0.1.0 */
 
-import type {CascadeRuntime} from "./graph.ts";
-import type {CascadeEffect, WriteAddress} from "./operation.ts";
+import type {WhuiyRuntime} from "./graph.ts";
+import type {WhuiyEffect, WriteAddress} from "./operation.ts";
 import type {
   ConditionOf,
   NextRegisteredRule,
@@ -19,17 +19,17 @@ import {make as makeRuntime} from "./graph.ts";
 import {RuleBundle} from "./rules.ts";
 
 /**
- * Immutable builder for a Cascade runtime and its rule set.
+ * Immutable builder for a Whuiy runtime and its rule set.
  *
  * **When to use**
  *
  * Create one builder for each independently configured graph, add rule bundles
- * and rules, then call {@link Cascade.make} to allocate an executable runtime.
+ * and rules, then call {@link Whuiy.make} to allocate an executable runtime.
  *
  * @since 0.2.0
  * @category Models
  */
-export class Cascade<Registered extends RegisteredRule = never> {
+export class Whuiy<Registered extends RegisteredRule = never> {
   readonly #rules: readonly RuntimeRule[];
 
   constructor(rules: readonly RuntimeRule[] = []) {
@@ -38,8 +38,8 @@ export class Cascade<Registered extends RegisteredRule = never> {
 
   extend<BundleRegistered extends RegisteredRule>(
     bundle: RuleBundle<BundleRegistered> & RuleSetValidation<Registered, BundleRegistered>,
-  ): Cascade<Registered | BundleRegistered> {
-    return new Cascade([...this.#rules, ...bundle.entries]);
+  ): Whuiy<Registered | BundleRegistered> {
+    return new Whuiy([...this.#rules, ...bundle.entries]);
   }
 
   /**
@@ -52,11 +52,11 @@ export class Cascade<Registered extends RegisteredRule = never> {
    * @since 0.2.0
    * @category Constructors
    */
-  make(): Effect.Effect<CascadeRuntime> {
+  make(): Effect.Effect<WhuiyRuntime> {
     return makeRuntime(this.#rules);
   }
 
-  rule<Condition extends TokenInstanceRef, Yielded extends CascadeEffect<void, WriteAddress>>(
+  rule<Condition extends TokenInstanceRef, Yielded extends WhuiyEffect<void, WriteAddress>>(
     condition: Condition,
     handler: (
       token: LiveToken<
@@ -66,7 +66,7 @@ export class Cascade<Registered extends RegisteredRule = never> {
       >,
     ) => Generator<Yielded, void, never> &
       RuleValidation<Registered, ConditionOf<Condition>, Yielded>,
-  ): Cascade<NextRegisteredRule<Registered, Condition, Yielded>> {
+  ): Whuiy<NextRegisteredRule<Registered, Condition, Yielded>> {
     const runtimeHandler: RuntimeRuleHandler = token => {
       // SAFETY: the scheduler only invokes a rule for its own matching definition.
       const matched = token as LiveToken<
@@ -81,6 +81,6 @@ export class Cascade<Registered extends RegisteredRule = never> {
       handler: runtimeHandler,
       name: `${condition.definition.name}.${this.#rules.length + 1}`,
     };
-    return new Cascade([...this.#rules, rule]);
+    return new Whuiy([...this.#rules, rule]);
   }
 }

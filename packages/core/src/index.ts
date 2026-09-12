@@ -4,17 +4,17 @@ import {isTokenInstance as isTokenInstanceInternal} from "./token.ts";
 
 export {
   /** @since 0.1.0 */
-  Cascade,
-} from "./cascade.ts";
+  Whuiy,
+} from "./whuiy.ts";
 export type {
   /** @since 0.1.0 */
-  CascadeRuntime,
+  WhuiyRuntime,
   /** @since 0.1.0 */
   Mount,
 } from "./graph.ts";
 export type {
   /** @since 0.1.0 */
-  CascadeEffect,
+  WhuiyEffect,
   /** @since 0.1.0 */
   WriteAddress,
   /** @since 0.1.0 */

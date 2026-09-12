@@ -5,7 +5,7 @@ import {Effect} from "effect";
 
 import {isValidElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
-import {Cascade, Token} from "cascade";
+import {Token, Whuiy} from "whuiy";
 import {Element, Event, Style, createReactRenderer} from "../src/index.ts";
 import {ListenerDispatcher, project} from "../src/projection.tsx";
 
@@ -15,7 +15,7 @@ describe("React projection", () => {
     const Touched = Token("Touched")();
     const reportedRules: string[] = [];
     const runtime = Effect.runSync(
-      new Cascade()
+      new Whuiy()
         .rule(Item(), function* (item) {
           yield* item.pipe(Token.add(Touched()));
           throw new Error("initial rule failure");
@@ -36,7 +36,7 @@ describe("React projection", () => {
 
   it("groups native CSS decorators on a host", () => {
     const Card = Token("Card")();
-    const runtime = Effect.runSync(new Cascade().make());
+    const runtime = Effect.runSync(new Whuiy().make());
     const renderer = createReactRenderer({reportError: () => undefined, runtime});
     const html = renderToStaticMarkup(
       renderer.render(Card(Style.Color("navy"), Style.Padding("1rem"), Element.Div())),
@@ -48,7 +48,7 @@ describe("React projection", () => {
   });
 
   it("projects generated event decorators and skips absent listeners", () => {
-    const runtime = Effect.runSync(new Cascade().make());
+    const runtime = Effect.runSync(new Whuiy().make());
     const mounted = Effect.runSync(
       runtime.mount(Element.Button(Event.OnClick(() => Effect.void)), Element.Button()),
     );

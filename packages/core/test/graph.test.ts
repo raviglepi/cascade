@@ -2,7 +2,7 @@ import {describe, expect, it} from "@effect/vitest";
 
 import {Effect, Stream} from "effect";
 
-import {Cascade, Not, Token, type Mount} from "../src/index.ts";
+import {Not, Token, Whuiy, type Mount} from "../src/index.ts";
 
 describe("owned live graph", () => {
   it.effect("reads relations in both directions and preserves insertion order", () =>
@@ -10,7 +10,7 @@ describe("owned live graph", () => {
       const Text = Token("Text")<string>();
       const Name = Token("Name")();
       const User = Token("User")();
-      const runtime = yield* new Cascade().make();
+      const runtime = yield* new Whuiy().make();
       const mounted = yield* runtime.mount(User(Name(Text("Ada"))));
       const user = mounted.roots[0]!;
       const name = user.get(Name);
@@ -29,7 +29,7 @@ describe("owned live graph", () => {
       const Ghost = Token("Ghost")(Not(Fill()));
       const Label = Token("Label")();
       const Button = Token("Button")();
-      const runtime = yield* new Cascade().make();
+      const runtime = yield* new Whuiy().make();
       const mounted: Mount = yield* runtime.mount(Button(Fill(), Label()));
       const button = mounted.roots[0]!;
       const pullChanges = yield* Stream.toPull(mounted.changes);
@@ -57,7 +57,7 @@ describe("owned live graph", () => {
     Effect.gen(function* () {
       const Label = Token("Label")<string>();
       const Item = Token("Item")();
-      const runtime = yield* new Cascade().make();
+      const runtime = yield* new Whuiy().make();
       const root = Item(Label("retained"));
       const first = yield* runtime.mount(root);
       const second = yield* runtime.mount(root);

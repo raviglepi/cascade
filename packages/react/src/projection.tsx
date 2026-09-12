@@ -1,5 +1,5 @@
 import type * as React from "react";
-import type {LiveToken, TokenDefinitionRef, TokenValue} from "cascade";
+import type {LiveToken, TokenDefinitionRef, TokenValue} from "whuiy";
 
 import {Context, Effect, Predicate, Schema} from "effect";
 
@@ -30,7 +30,7 @@ export class ListenerDispatcher extends Context.Service<
       readonly tokenId: number;
     }) => Effect.Effect<void>;
   }
->()("@cascade/react/ListenerDispatcher") {}
+>()("@whuiy/react/ListenerDispatcher") {}
 
 const emptyDecorators: Decorators = {events: new Map(), style: {}};
 function reads(token: LiveToken, definition: TokenDefinitionRef): TokenValue {
@@ -171,7 +171,7 @@ function elementHost(options: {
 function nextPath(path: ReadonlySet<number>, token: LiveToken): ReadonlySet<number> {
   if (path.has(token.id)) {
     throw new ProjectionError({
-      cause: new Error("A cycle was found while projecting Cascade tokens"),
+      cause: new Error("A cycle was found while projecting Whuiy tokens"),
       tokenId: token.id,
     });
   }

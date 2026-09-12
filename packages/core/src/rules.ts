@@ -2,7 +2,7 @@
 
 import type {IsEqual, IsNever} from "type-fest";
 import type {Cause} from "effect";
-import type {CascadeEffect, WriteAddress, WritesOf, WriteSlot} from "./operation.ts";
+import type {WhuiyEffect, WriteAddress, WritesOf, WriteSlot} from "./operation.ts";
 import type {
   DefinitionName,
   DefinitionOf,
@@ -29,7 +29,7 @@ export type RuleFailureListener = (failure: RuleFailure) => void;
 /** @internal */
 export type RuntimeRuleHandler = (
   token: LiveToken<TokenDefinitionRef, string, readonly []>,
-) => Generator<CascadeEffect<void, WriteAddress>, void, never>;
+) => Generator<WhuiyEffect<void, WriteAddress>, void, never>;
 
 /** @internal */
 export interface RuntimeRule {
@@ -142,14 +142,14 @@ export type RuleValidation<
   Yielded,
 > = [IsNever<Yielded>] extends [true]
   ? object
-  : Yielded extends CascadeEffect<void, WriteAddress>
+  : Yielded extends WhuiyEffect<void, WriteAddress>
     ? [ConflictWithEarlier<Earlier, Condition, WritesOf<Yielded>>] extends [never]
       ? object
       : {
-          readonly "Cascade rule conflict": "conditions overlap and write the same target";
+          readonly "Whuiy rule conflict": "conditions overlap and write the same target";
           readonly write: ConflictWithEarlier<Earlier, Condition, WritesOf<Yielded>>;
         }
-    : {readonly "Cascade rule error": "handlers may only yield Cascade operations"};
+    : {readonly "Whuiy rule error": "handlers may only yield Whuiy operations"};
 
 /** @internal */
 export type NextRegisteredRule<
@@ -163,7 +163,7 @@ declare const RuleDefinitionTypeId: unique symbol;
 /** @since 0.2.0 */
 export interface RuleDefinition<
   Condition extends TokenInstanceRef = TokenInstanceRef,
-  Yielded extends CascadeEffect<void, WriteAddress> = CascadeEffect<void, WriteAddress>,
+  Yielded extends WhuiyEffect<void, WriteAddress> = WhuiyEffect<void, WriteAddress>,
 > {
   readonly condition: Condition;
   readonly handler: RuntimeRuleHandler;
@@ -175,7 +175,7 @@ const ruleDefinitions = new WeakSet<object>();
 /** @since 0.2.0 */
 export function Rule<
   Condition extends TokenInstanceRef,
-  Yielded extends CascadeEffect<void, WriteAddress>,
+  Yielded extends WhuiyEffect<void, WriteAddress>,
 >(
   condition: Condition,
   handler: (
@@ -189,8 +189,8 @@ export function Rule<
       DefinitionName<DefinitionOf<Condition>>,
       readonly []
     >;
-    // SAFETY: Rule constrains every yielded operation to CascadeEffect.
-    return handler(matched) as Generator<CascadeEffect<void, WriteAddress>, void, never>;
+    // SAFETY: Rule constrains every yielded operation to WhuiyEffect.
+    return handler(matched) as Generator<WhuiyEffect<void, WriteAddress>, void, never>;
   };
   const definition: RuleDefinition<Condition, Yielded> = {condition, handler: runtimeHandler};
   ruleDefinitions.add(definition);
@@ -200,7 +200,7 @@ export function Rule<
 type RuleMetadata<Definition> =
   Definition extends RuleDefinition<
     infer Condition extends TokenInstanceRef,
-    infer Yielded extends CascadeEffect<void, WriteAddress>
+    infer Yielded extends WhuiyEffect<void, WriteAddress>
   >
     ? RegisteredRule<ConditionOf<Condition>, WritesOf<Yielded>>
     : never;
@@ -246,7 +246,7 @@ type InternalRuleSetConflict<
 export type RuleSetValidation<Earlier extends RegisteredRule, Rules extends RegisteredRule> =
   IsNever<RuleSetConflict<Earlier, Rules> | InternalRuleSetConflict<Rules>> extends true
     ? object
-    : {readonly "Cascade rule conflict": "conditions overlap and write the same target"};
+    : {readonly "Whuiy rule conflict": "conditions overlap and write the same target"};
 
 /** @since 0.2.0 */
 export class RuleBundle<Registered extends RegisteredRule = never> {

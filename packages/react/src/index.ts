@@ -2,13 +2,13 @@
 
 export {
   /** @since 0.1.0 */
-  CascadeErrorBoundary,
+  WhuiyErrorBoundary,
   /** @since 0.1.0 */
   ProjectionError,
 } from "./errors.tsx";
 export type {
   /** @since 0.1.0 */
-  CascadeReactReport,
+  WhuiyReactReport,
   /** @since 0.1.0 */
   ErrorReporter,
 } from "./errors.tsx";
