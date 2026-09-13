@@ -1,14 +1,14 @@
 {
-  "name": "whuiy",
+  "name": "@whuiy/dom",
   "version": "0.3.0",
   "homepage": "github.com/raviglepi/whuiy",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./primitives": "./src/primitives.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
-    "effect": "^4.0.0-rc"
+    "effect": "^4.0.0-rc",
+    "whuiy": "workspace:*"
   }
 }

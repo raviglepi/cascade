@@ -44,6 +44,32 @@ export {
   /** @since 0.1.0 */
   Token,
 } from "./token.ts";
+export {
+  /** @since 0.4.0 */
+  Element,
+  /** @since 0.4.0 */
+  Event,
+  /** @since 0.4.0 */
+  Style,
+} from "./primitives.ts";
+export type {
+  /** @since 0.4.0 */
+  ElementFamily,
+  /** @since 0.4.0 */
+  ElementToken,
+  /** @since 0.4.0 */
+  EventFamily,
+  /** @since 0.4.0 */
+  EventProperty,
+  /** @since 0.4.0 */
+  EventToken,
+  /** @since 0.4.0 */
+  StyleFamily,
+  /** @since 0.4.0 */
+  StyleProperty,
+  /** @since 0.4.0 */
+  StyleToken,
+} from "./primitives.ts";
 /** @internal */
 export const isTokenInstance = isTokenInstanceInternal;
 export type {

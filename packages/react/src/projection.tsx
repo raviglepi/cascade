@@ -4,9 +4,8 @@ import type {LiveToken, TokenDefinitionRef, TokenValue} from "whuiy";
 import {Context, Effect, Predicate, Schema} from "effect";
 
 import {cloneElement, createElement} from "react";
+import {getDecoratorMetadata, getElementMetadata} from "whuiy/primitives";
 import {ProjectionError} from "./errors.tsx";
-import {getDecoratorMetadata, getElementMetadata} from "./primitives.ts";
-import {StyleValueSchema, toCssValue} from "./semantic-values.ts";
 
 type EventHandler = (event: React.SyntheticEvent<HTMLElement>) => Effect.Effect<void>;
 type Handler = {readonly tokenId: number; readonly value: EventHandler};
@@ -33,6 +32,7 @@ export class ListenerDispatcher extends Context.Service<
 >()("@whuiy/react/ListenerDispatcher") {}
 
 const emptyDecorators: Decorators = {events: new Map(), style: {}};
+const StyleValueSchema = Schema.Union([Schema.String, Schema.Finite]);
 function reads(token: LiveToken, definition: TokenDefinitionRef): TokenValue {
   if (token.definition !== definition) {
     throw new ProjectionError({
@@ -75,7 +75,7 @@ function styleValue(options: {
   readonly token: LiveToken;
   readonly value: TokenValue;
 }): string | number {
-  if (Schema.is(StyleValueSchema)(options.value)) return toCssValue(options.value);
+  if (Schema.is(StyleValueSchema)(options.value)) return options.value;
   throw new ProjectionError({
     cause: new Error(`${options.token.definition.name} requires a CSS-compatible style value`),
     tokenId: options.token.id,

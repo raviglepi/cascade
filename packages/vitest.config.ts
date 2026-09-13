@@ -9,5 +9,8 @@ export default defineConfig({
     typesugar({strict: true}),
     comptime(),
   ],
-  test: {exclude: [...configDefaults.exclude, "bun.test.ts"]},
+  test: {
+    exclude: [...configDefaults.exclude, "bun.test.ts"],
+    projects: [{extends: true, test: {environment: "happy-dom", include: ["dom/**/*.test.ts"]}}],
+  },
 });

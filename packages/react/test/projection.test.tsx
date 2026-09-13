@@ -5,8 +5,8 @@ import {Effect} from "effect";
 
 import {isValidElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
-import {Token, Whuiy} from "whuiy";
-import {Element, Event, Style, createReactRenderer} from "../src/index.ts";
+import {Element, Event, Style, Token, Whuiy} from "whuiy";
+import {createReactRenderer} from "../src/index.ts";
 import {ListenerDispatcher, project} from "../src/projection.tsx";
 
 describe("React projection", () => {
